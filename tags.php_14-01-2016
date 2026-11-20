@@ -1,0 +1,501 @@
+<? 
+	include('include/security.php');
+	include('include/dbcon.php');
+	include('include/functions.php');
+	$db = new DBConn();
+	$current_page = 'tags.php';
+	$criteria = "";
+
+	
+$t_id=$lrow['tag_id']; 
+function is_child1($tag_id)
+{
+	$sql="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	
+	if(mysql_num_rows($ex)>0)
+	{
+		echo "<ul>";
+		while($rows=mysql_fetch_array($ex))
+		{
+			if($rows['color_code']!='')
+			{
+				$color_code=$rows['color_code'];
+			}
+			else 
+			{
+				$color_code="#F5F5F5";
+			}
+			$noOfTagBelongsToProperty=noOfTagBelongsToProperty($rows['tag_id']);
+		?>
+			<li>
+				<div class="cel1"><?php echo $rows['tag_name']; ?></div>
+				<div class="cel2">
+					<span style="width:52px;height:16px; line-height:16px; text-align:center;background-color:<?php echo $color_code; ?>"><?php echo $row['color_code']; ?></span>
+				</div>
+				<div class="cel3"><?php echo $noOfTagBelongsToProperty; ?></div>
+				<div class="cel4">
+					<?php /* ?>
+					<a href="edit-tag.php?id=<?php echo $rows['tag_id']; ?>" class="n">Edit</a> 
+					<?php */ ?>
+					<a class="doEdit n" id="edit_<?php echo $rows['tag_id']; ?>" href="javascript:;">	Edit</a> 	&nbsp; | &nbsp; <a href="javascript:if(confirm('Are you sure you want to delete it?')){window.location='tags.php?id=<?php echo $rows['tag_id']?>&del=delete'}" class="n">Delete</a>
+				</div>
+				<?php is_child1($rows['tag_id']); ?>
+			</li>
+<?php 
+		}
+		echo "</ul>";
+	}
+}
+
+	/*
+	$sql_list_query = "SELECT DISTINCT(`tag_name`),`tag_id`,`color_code` FROM `planitlo_crm`.`tags` ORDER BY tag_name ASC";
+	
+	
+	//echo $sql_list_query;
+	//$sql_list_query .= " GROUP BY property.id ";    
+	// Paging Details
+	$go = 1;
+	$perpage = 50 ;
+	if(isset($_REQUEST['go']) && $_REQUEST['go'] != '')
+		$go = $_REQUEST['go'];
+	if($go > 1){
+		$chkgo = "?go=".$go;
+	}
+	$offset = (($go * $perpage) - $perpage);
+	$result_total = $db->query($sql_list_query) or die(mysql_error()." ".$sql_list_query);
+	$totalrecs = $db->getNumRows($result_total);
+	$sql_list_query .= " limit $offset,$perpage";
+	$result = $db->query($sql_list_query) or die(mysql_error()." ".$sql_list_query);
+	$count=$db->getNumRows($result);
+	$total_pages = ceil($totalrecs / $perpage);
+	$start_var = $offset + 1;
+	$end_var_records = $count + (($go-1)*$perpage);
+	$end_var = $start_var + $perpage - 1;
+	$paging_var = "";
+	// Build Previous Pagin Link 
+	if($go > 1){ 
+		$prev = ($go - 1); 
+		$paging_var .= "<a href=\"".$current_page."?go=".$prev."\" style='text-decoration:none'><img src='images/previous.gif' alt='Previous' align='absmiddle' border='0' width='8' height='11' /> </a>"; 
+	} 
+	// Build Paging Link 
+	//for($i = 1; $i <= $total_pages; $i++){
+		$paging_var .=  "<span> (".($offset+1)." - ".($offset+$perpage)." of ".$totalrecs.") </span>"; 
+	//} 
+	// Build Next Paging Link 
+	if($go < $total_pages){ 
+		$next = ($go + 1); 
+		$paging_var .=  "<a href=\"".$current_page."?go=".$next."\"  style='text-decoration:none'><img src='images/next.gif' alt='Next' align='absmiddle' border='0' width='8' height='11' /> </a>"; 
+	}
+	$result = $db->query($sql_list_query) or die($sql_list_query);
+	
+	$badCategories = array("-a","-b","-c","-d","prv","Z"); */
+?>
+<?php 
+// FOR TAG DELETE OPERATIONS :: 
+function getallchildtagsx($tag_id)
+{
+	$sel="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$exsel=mysql_query($sel);	
+	static $arr=array();
+	if(mysql_num_rows($exsel)>0)
+	{
+		while($rows=mysql_fetch_array($exsel))
+		{
+			$arr[]=$rows['tag_id'];
+			$selx="SELECT * FROM tags WHERE is_child='".$rows['tag_id']."'";
+			$exselx=mysql_query($selx);
+			if(mysql_num_rows($exselx)>0)
+			{				
+				getallchildtagsx($rows['tag_id']);
+			}
+		}
+	}
+	return array_unique($arr);
+}
+
+function getallchildtagsy($tag_id)
+{
+	$sel="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$exsel=mysql_query($sel);	
+	$arr=array();
+	//static ${"arr_".$tag_id}=array();
+	if(mysql_num_rows($exsel)>0)
+	{
+		while($rows=mysql_fetch_array($exsel))
+		{
+			$arr[]=$rows['tag_id'];
+			$selx="SELECT * FROM tags WHERE is_child='".$rows['tag_id']."'";
+			$exselx=mysql_query($selx);
+			if(mysql_num_rows($exselx)>0)
+			{				
+				getallchildtagsy($rows['tag_id']);
+			}
+		}
+	}
+	//print_r($arr);
+	return array_unique($arr);
+	//return array_unique(${"arr_".$tag_id});
+}
+if($_REQUEST['del']=='delete')
+{
+	$tag_id=$_REQUEST["id"];	
+	$sel="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$exsel=mysql_query($sel);
+	$get_tags=array();
+	if(mysql_num_rows($exsel)>0)
+	{
+		$get_tags=getallchildtagsx($tag_id);
+		array_push($get_tags,$tag_id);
+		$tags=implode(',',$get_tags);
+	}
+	else 
+	{
+		$tags=$tag_id;
+	}	
+	$tagDel="DELETE FROM tags WHERE tag_id IN($tags)";
+	mysql_query($tagDel);
+	
+	$relSql="DELETE FROM properties_tags_relationships WHERE tag_id IN($tags)";
+	mysql_query($relSql);
+	header("location:tags.php?success=4");
+}
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<link href="css/technocss.css" rel="stylesheet" type="text/css" />
+<link type="text/css" href="css/font-awesome.css" rel="stylesheet" />
+</head>
+
+<body>
+<? include("header.php"); ?>
+<table width="99%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap">
+	  
+	  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Manage Tags  &nbsp;&nbsp;</b> 
+				<a href="https://planitlocations.com/crm/add-tag.php">Add Tags </a>
+			</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top" class="side-nav"><? include('sidenav.php');?></td>
+                  <td align="left" valign="top" class="mar"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td align="left" valign="top" class="moduleTitle">Manage Tags  </td>
+                      <td align="right" valign="top"><a class="utilsLink" href="add-tag.php" style="font-size:12px !important;text-decoration:none;">Add Tags </a></td>
+                    </tr>
+                  </table>
+                    <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td align="left" valign="top">
+						<?php 
+						if($_REQUEST['success']==4)
+						{
+						?>
+							<label class="fldttl" style="font-color:red !important;">Data successfully deleted.</label>
+						<?php 
+						} 						
+						?>
+						<!-- <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                          <tr>
+                            <td width="25" height="18" align="left" valign="top">&nbsp;</td>
+                            <td width="107" align="left" valign="top">&nbsp;</td>
+							 <td width="107" align="left" valign="top">&nbsp;</td>
+                            <td colspan="5" align="right" valign="top"><span style="padding-right:10px;">
+                              <?php //$paging_var?>
+                            </span></span></td>
+                          </tr>
+						</table> -->
+						<div class="fourColmTable">
+							<ul class="tagColorTable tblhead">
+								<li>
+									<div class="cel1">Tags</div>
+									<div class="cel2">Color Code</div>
+									<div class="cel3">Tag Count</div>
+									<div class="cel4">Action</div>
+								</li>
+							</ul>
+							
+							<?php 
+							   $sel="SELECT * FROM `planitlo_crm`.`tags` WHERE `is_child`=0 ORDER BY tag_name ASC";
+								$exe=mysql_query($sel);
+								$mode=$_REQUEST['mode'];
+								$tag_id=$_REQUEST['tag_id'];
+								?>	
+								
+									<ul class="tagColorTable">
+									<?php 
+									while($rows=mysql_fetch_array($exe))
+									{
+										if($rows['color_code']!='')
+										{
+											$color_code=$rows['color_code'];
+										}
+										else 
+										{
+											$color_code="#F5F5F5";
+										}
+										/*if(count(getallchildtagsx($rows['tag_id']))>0)
+										{
+											$tag_id=implode(',',getallchildtagsx($rows['tag_id']));
+										}
+										else 
+										{
+											$tag_id=0;
+										}
+										*/
+										$getallchildDyn=getallchildtagsy($rows['tag_id']);
+										$tag_id=implode(',',$getallchildDyn);
+										$noOfTagBelongsToProperty=noOfTagBelongsToProperty($tag_id);
+										
+								?>
+										<li>
+											<div class="cel1"><?php echo $rows['tag_name']; ?></div>
+											<div class="cel2">
+												<span style="width:52px;height:16px; line-height:16px; text-align:center;background-color:<?php echo $color_code; ?>"></span>
+											</div>
+											<div class="cel3"><?php echo $noOfTagBelongsToProperty; ?></div>
+											<div class="cel4">
+												<?php /* ?>
+												<a href="edit-tag.php?id=<?php echo $rows['tag_id']; ?>" class="n">Edit</a> 
+												<?php */ ?>
+												<a class="doEdit n" id="edit_<?php echo $rows['tag_id']; ?>" href="javascript:;">	Edit</a> 										
+												&nbsp; | &nbsp; <a href="javascript:if(confirm('Are you sure you want to delete it?')){window.location='tags.php?id=<?php echo $rows['tag_id']; ?>&del=delete'}" class="n">Delete</a>
+											</div>
+										<?php 
+											$sql="SELECT * FROM `planitlo_crm`.`tags` WHERE  `is_child`='".$rows['tag_id']."'";
+											$ex=mysql_query($sql);
+											if(mysql_num_rows($ex)>0)
+											{
+												is_child1($rows['tag_id']);
+											}
+										?>
+										</li>	
+									<?php 
+									}
+									?>
+									</ul>
+							  <? //$cnt=$cnt+1; }  if($numrows < 1){ echo '<tr><td class="formtxt" colspan="6"> No Records against your search criteria.</td></tr>';} ?>
+						  </div>
+						  <div class="spacer"></div>
+					</td>
+                      </tr>
+                    </table></td>
+    </tr>
+</table></td>
+                </tr>
+            </table></td>
+          </tr>
+        </tbody>
+      </table></td>
+    </tr>
+  </tbody>
+</table>
+<? include("footer.php");?>
+
+<div id="edit_fade" ></div>
+	<div id="edit_light">
+		<div onClick="edit_close();" class="closeN">X</div> 
+		<span class="tagTtl">Edit tag</span>
+		<label class="fldttl">Edit your tag:</label>
+		<input type="text" name="tag_name" id="tagName" class="txtFld" />
+		<label class="fldttl">Please choose color code</label>
+		<input class='simple_color_picker txtFld' type="text" name="color_code"  id="color_code" value="#F5F5F5"/>
+		<label class="fldttl">
+			<input type="checkbox" name="is_nested" id="is_nestedEdit" class="is_nested"/>Nest label under : </label>
+			<div id="hierarchicalEdit"></div>
+		<input type="hidden" name="hid_tag_id" id="hidTag_id" />
+		<div class="buttonset">
+			<input type="hidden" name="is_child" id="is_childEdit" class="is_child" />
+			<input type="button" name="sub" id="actionToEdit" value="Submit" class="new-Btn button is_enabled" />
+			<input type="button" name="sub" id="sub" value="Cancel" onClick="edit_close();" class="new-Btn button red" />
+			<div class="clear"></div>
+		</div>
+	</div>
+<script type="text/javascript">
+jQuery(".doEdit").live("click", function(){		
+	jQuery(".is_enabled").removeAttr('disabled');
+	jQuery("#edit_del_close_button").show();
+	jQuery("#manage_close_button").hide();
+	
+	var me=jQuery(this);
+	var attr=me.attr('id');
+	var sp=attr.split('_');
+	//manage_close();
+	jQuery.ajax({ 
+		type : 'POST',
+		url : 'ajax_tag.php',					
+		data : 
+		{ 
+			action : 'edit',
+			tag_id : sp[1]
+		},	
+		success : function(data)
+		{  
+			window.scrollTo(0,0);
+			document.getElementById('edit_light').style.display='block';
+			document.getElementById('edit_fade').style.display='block'; 
+			var obj=JSON.parse(data);
+			jQuery.ajax({ 
+				type : 'POST',
+				url : 'ajax_tag.php',					
+				data : 
+				{ 
+					action : 'hierarchical',
+					mode : 'edit',
+					tag_id : obj.tag_id
+				},
+				beforeSend: function()
+				{
+					jQuery("#hierarchicalEdit").html('<img src="<?php echo SITE_URL; ?>images/ajax-loader.gif">');	
+				},			
+				success : function(data)
+				{
+					jQuery("#hierarchicalEdit").html(data);
+					
+					if(obj.is_child!=0)
+					{
+						jQuery(".sel_parent").html('<span>'+obj.tparent+'</span>');
+						
+					}
+					else 
+					{
+						jQuery(".sel_parent").html('<span>'+'&nbsp;'+'</span>');
+					}
+				}				
+			});
+			jQuery("#manage_light").addClass('onOffBlock')
+			jQuery("#tagName").val(obj.tag_name);
+			jQuery("#hidTag_id").val(obj.tag_id);
+			jQuery("#color_code").val(obj.color_code);
+			jQuery("#is_childEdit").val(obj.is_child);
+			if(obj.is_child!=0)
+			{
+				jQuery( "#is_nestedEdit" ).attr( "checked", "checked" );
+			}	
+			
+		}				
+	});		
+});
+	jQuery(".tags span").live("click", function(){
+		var tagID=jQuery(this).attr('id');
+		var split=tagID.split('_');
+		var thisHtml = jQuery(this).html();
+		jQuery(".is_child").val(split[1]);
+		//jQuery( ".is_nested" ).prop( "checked", true );
+		jQuery( ".is_nested" ).attr( "checked", "checked" );
+		jQuery(".sel_parent").html('<span>' + thisHtml + '</span>');
+		jQuery(".is_enabled").removeAttr('disabled');
+	});
+jQuery("#sel_parent").live("click", function(){
+	if(!jQuery(".subSelCatg").is(":visible")){
+		jQuery(".subSelCatg").show();
+	}else{
+		jQuery(".subSelCatg").hide();	
+	}
+});
+jQuery(".subSelCatg li").live("click", function(){
+	jQuery(".subSelCatg").hide();	
+});
+jQuery(".tags span").live("click", function(){
+	var tagID=jQuery(this).attr('id');
+	var split=tagID.split('_');
+	var thisHtml = jQuery(this).html();
+	jQuery(".is_child").val(split[1]);
+	jQuery( ".is_nested" ).attr( "checked", "checked" );
+	jQuery(".sel_parent").html('<span>' + thisHtml + '</span>');
+	jQuery(".is_enabled").removeAttr('disabled');
+});
+jQuery("#is_nestedEdit").live("click", function(){	
+	secondcheckbox();
+});
+jQuery("#actionToEdit").live("click", function(){		
+	jQuery.ajax({ 
+		type : 'POST',
+		url : 'ajax_tag.php',					
+		data : 
+		{ 
+			action : 'actionEdit0',
+			tag_name :jQuery("#tagName").val(),
+			tag_id : jQuery("#hidTag_id").val(),
+			color_code : jQuery("#color_code").val(),
+			is_child : jQuery("#is_childEdit").val()
+		},	
+		success : function(data)
+		{  
+			location.href="https://planitlocations.com/crm/tags.php";			
+		}
+	});
+});
+jQuery(document).keyup(function(e){ // CLOSE POP AFTER PRESSING ESC KEY
+	if (e.keyCode == 27) 
+	{  
+		jQuery(".closeN").trigger('click',function(){ edit_close(); });		
+	}
+});
+function edit_close()
+{
+	//document.getElementById('edit_light').style.display='none';
+	//document.getElementById('edit_fade').style.display='none';
+	
+	jQuery("#edit_light").fadeOut(600);
+	jQuery("#edit_fade").fadeOut(600);
+}
+function secondcheckbox(){
+	if(jQuery("#is_nestedEdit").is(':checked')==true){ 
+		jQuery(".sel_parent").html('<span>Please select a parent</span>');
+		jQuery("#actionToEdit").attr('disabled','disabled');
+	}
+	else 
+	{
+		jQuery(".sel_parent").html('<span></span>');
+		jQuery("#is_childEdit").val('0');
+		jQuery(".subSelCatg").hide();
+		jQuery("#is_nestedEdit").removeAttr('checked');
+		jQuery("#actionToEdit").removeAttr('disabled');
+	}
+}
+</script>
+
+
+
+
+<script type="text/javascript" src="simple_color_picker/src/jquery.simple-color.js"></script>
+
+<script  type="text/javascript">
+jQuery(document).ready(function(){
+ 
+  jQuery('.simple_color_picker').simpleColor({ displayColorCode: true });
+  jQuery('.simple_color_kitchen_sink').simpleColor({
+    boxHeight: 40,
+    cellWidth: 20,
+    cellHeight: 20,
+    chooserCSS: { 'border': '1px solid #660033' },
+    displayCSS: { 'border': '1px solid red' },
+    displayColorCode: true,
+    livePreview: true,
+    onSelect: function(hex, element) {
+      alert("You selected #" + hex + " for input #" + element.attr('class'));
+    },
+    onCellEnter: function(hex, element) {
+      console.log("You just entered #" + hex + " for input #" + element.attr('class'));
+    },
+    onClose: function(element) {
+      alert("color chooser closed for input #" + element.attr('class'));
+    }
+  });
+
+});
+</script>
+</body>
+</html>

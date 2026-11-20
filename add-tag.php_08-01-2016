@@ -1,0 +1,291 @@
+<? 
+	include('include/security.php');
+	include('include/dbcon.php');
+	include('include/config.php');
+	include('include/functions.php');
+	$db = new DBConn();
+	if($_POST){
+		$success = array();
+		
+		$check="SELECT tag_name FROM planitlo_crm.tags WHERE tag_name='".$_REQUEST['tag_name']."'";
+		$result_total = $db->query($check) or die(mysql_error()." ".$check);
+		$totalrecs = $db->getNumRows($result_total);
+		if($totalrecs==0)
+		{
+			$is_child=($_REQUEST['is_child']!='') ? $_REQUEST['is_child'] : 0;
+			$sql = "INSERT INTO `planitlo_crm`.`tags` (`tag_name`,`is_child`,`color_code`) VALUES('".addslashes($_REQUEST['tag_name'])."','".$is_child."','".addslashes($_REQUEST['color_code'])."')";
+			if($db->query($sql)){
+				$val = 1;
+			}
+			else 
+			{
+				$val = 0;
+			}
+		}
+		else 
+		{
+			$val=2;
+		}
+		if($val == 0){
+			header("Location: add-tag.php?success=0");
+		}else if ($val == 1){
+			header("Location: tags.php?success=1");
+		}else {
+			header("Location: add-tag.php?success=2");
+		}
+		
+	}
+	/*
+	if(isset($_REQUEST['hidSub']) && $_REQUEST['hidSub']==2){
+		$success = array();
+		
+		$check="SELECT tag_name FROM planitlo_crm.tags WHERE tag_name='".$_REQUEST['tag_name']."' AND tag_id!='".$_REQUEST['tag_id']."'";
+		$result_total = $db->query($check) or die(mysql_error()." ".$check);
+		$totalrecs = $db->getNumRows($result_total);
+		if($totalrecs==0)
+		{
+			//$is_child=($_REQUEST['is_child']!='') ? $_REQUEST['is_child'] : 0;
+			$sql = "UPDATE `planitlo_crm`.`tags` SET `tag_name`='".addslashes($_REQUEST['tag_name'])."',`is_child`='".$_REQUEST['is_child']."',`color_code`='".addslashes($_REQUEST['color_code'])."' WHERE tag_id='".$_REQUEST['tag_id']."'";
+			if($db->query($sql))
+			{
+				$val = 1;
+			}
+			else 
+			{
+				$val = 0;
+			}
+		}
+		else 
+		{
+			$val=2;
+		}
+		if($val == 0){
+			header("Location: add-tag.php.php?success=0");
+		}else if ($val == 1){
+			header("Location: tags.php?success=1");
+		}else {
+			header("Location: add-tag.php?success=2");
+		}
+		
+	}
+	*/
+if($_REQUEST['id']!='')
+{
+	$sel="SELECT * FROM planitlo_crm.tags WHERE tag_id='".$_REQUEST['id']."'";
+	$exe = mysql_query($sel) or die(mysql_error()." ".$sel);
+	$lrow = mysql_fetch_array($exe);
+	
+}
+?>
+<?php 
+$t_id=$lrow['tag_id']; 
+function is_child1($tag_id)
+{
+	$sql="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	
+	if(mysql_num_rows($ex)>0)
+	{
+		echo "<ul>";
+		while($rows=mysql_fetch_array($ex))
+		{
+		?>
+			<li class="tags"><span id="tag_<?php echo $rows['tag_id']; ?>"><?php if($GLOBALS['t_id']==$rows['tag_id']) { ?> <img src="https://planitlocations.com/crm/images/right-sign.png" /><?php }  ?><?php echo $rows['tag_name']; ?></span>
+			
+			<?php 				
+				is_child1($rows['tag_id']);									
+			?>
+			</li>
+<?php 
+		}
+		echo "</ul>";
+	}
+}
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+	.selCatg{display:block; position:relative; width:320px;}
+	.sel_parent{display:block;}
+	.sel_parent > span{display:block; font-size:14px; line-height:16px; border:1px solid #aaa; padding:8px 16px 8px 6px; position:relative; cursor:default;}
+	.sel_parent > span:after{content:"\f0d7"; font-family: 'FontAwesome'; position:absolute; top:50%; right:6px; font-size:14px; line-height:14px; margin:-7px 0 0 0;}
+	.subSelCatg{display:block; margin:8px 0 0 0; width:100%; padding:0; border:1px solid #aaa; background-color:#fff; z-index:99; max-height:240px; overflow:auto;}
+	.subSelCatg li{display:block;}
+	.subSelCatg li span{display:block; font-size:14px; line-height:16px; padding:5px 16px; cursor:default;}
+	.subSelCatg li span:hover{background-color:#f3f3f3;}
+	.subSelCatg li ul{display:block; padding:0; margin:0;}
+	.subSelCatg li li span{padding-left:40px;}
+	.subSelCatg li li li span{padding-left:64px;}
+	.subSelCatg li span img{height:16px;}
+</style>
+<link type="text/css" href="css/technocss.css" rel="stylesheet" />	
+<link type="text/css" href="css/font-awesome.css" rel="stylesheet" />
+<script>
+function validateNumber(event) {
+    var key = window.event ? event.keyCode : event.which;
+
+    if (event.keyCode == 8 || event.keyCode == 46
+     || event.keyCode == 37 || event.keyCode == 39) {
+        return true;
+    }
+    else if ( key < 48 || key > 57 ) {
+        return false;
+    }
+    else return true;
+};
+</script>
+</head>
+
+<body>
+<? include("header.php"); ?>
+
+<table width="99%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap"><table width="100%" border="0" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Create Contact </b> </td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top" class="side-nav"><? include('sidenav.php');?></td>
+                  <td align="left" valign="top" class="mar"><table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap">
+	  <form id="form1" name="form1" method="post" action="add-tag.php">
+		<div id="tag_light" class="relative autuResize nwForm">
+			<span class="tagTtl">Add new tag</span>
+			<label class="fldttl">Please enter a new tag name:</label>
+			<input type="text" name="tag_name" id="tag_name" maxlength="50" class="txtFld"/>
+			<label class="fldttl">Please choose color code :</label>
+			<input class='simple_color_picker txtFld' type="text" name="color_code" value="#F5F5F5"/>
+			<label class="fldttl"><span class="formtxt">
+				<input type="checkbox" name="is_nested" class="is_nested" id="is_nested" />Nest label under : </span></label>
+				<div id="hierarchical"></div>					
+			<div class="buttonset">
+				<input type="hidden" name="is_child" id="is_child" class="is_child" value="0" />
+				<input type="button" name="sub" id="sub" value="Submit" class="new-Btn button is_enabled" />
+				<input type="button" name="sub" id="" value="Cancel" class="new-Btn button red" />
+				<div class="clear"></div>
+			</div>
+		</div>
+      </form>
+      </td>
+    </tr>
+  </tbody>
+</table></td>
+                </tr>
+            </table></td>
+          </tr>
+        </tbody>
+      </table></td>
+    </tr>
+  </tbody>
+</table>
+<? include("footer.php");?>
+</body>
+</html>
+
+
+<script type="text/javascript" src="simple_color_picker/src/jquery.simple-color.js"></script>
+
+<script  type="text/javascript">
+jQuery(document).ready(function(){
+ 
+  jQuery('.simple_color_picker').simpleColor({ displayColorCode: true });
+  jQuery('.simple_color_kitchen_sink').simpleColor({
+    boxHeight: 40,
+    cellWidth: 20,
+    cellHeight: 20,
+    chooserCSS: { 'border': '1px solid #660033' },
+    displayCSS: { 'border': '1px solid red' },
+    displayColorCode: true,
+    livePreview: true,
+    onSelect: function(hex, element) {
+      alert("You selected #" + hex + " for input #" + element.attr('class'));
+    },
+    onCellEnter: function(hex, element) {
+      console.log("You just entered #" + hex + " for input #" + element.attr('class'));
+    },
+    onClose: function(element) {
+      alert("color chooser closed for input #" + element.attr('class'));
+    }
+  });
+
+});
+</script>
+<script type="text/javascript">
+jQuery(document).ready(function(){
+jQuery.ajax({ 
+		type : 'POST',
+		url : 'ajax_tag.php',					
+		data : 
+		{ 
+			action : 'hierarchical',
+		},
+		beforeSend: function()
+		{
+			jQuery("#hierarchical").html('<img src="https://planitlocations.com/crm/images/ajax-loader.gif">');	
+		},			
+		success : function(data)
+		{
+			jQuery("#hierarchical").html(data);
+			jQuery(".sel_parent").html('<span>'+'&nbsp;'+'</span>');
+		}				
+	});
+	jQuery("#sel_parent").live("click", function(){
+		if(!jQuery(".subSelCatg").is(":visible")){
+			jQuery(".subSelCatg").show();
+		}else{
+			jQuery(".subSelCatg").hide();	
+		}
+	});
+	jQuery(".subSelCatg li").live("click", function(){
+		jQuery(".subSelCatg").hide();	
+	});
+	jQuery(".tags span").live("click", function(){
+		var tagID=jQuery(this).attr('id');
+		var split=tagID.split('_');
+		var thisHtml = jQuery(this).html();
+		jQuery(".is_child").val(split[1]);
+		jQuery( ".is_nested" ).attr( "checked", "checked" );
+		jQuery(".sel_parent").html('<span>' + thisHtml + '</span>');
+		jQuery(".is_enabled").removeAttr('disabled');
+	});
+	jQuery("#is_nested").live("click", function(){
+		firstcheckbox();
+	});
+	jQuery("#sub").live('click',function(){ 	
+		if(jQuery('#tag_name').val()=='')
+		{
+			alert('Please enter tag name');
+			return false;
+		}
+		else 
+		{
+			jQuery("#form1").submit();
+		}	
+	});
+});
+function firstcheckbox(){
+	if(jQuery("#is_nested").is(':checked')==true){ 
+		jQuery(".sel_parent").html('<span>Please select a parent</span>');
+		jQuery("#sub").attr('disabled','disabled');
+	}
+	else 
+	{
+		jQuery(".sel_parent").html('<span></span>');
+		jQuery(".subSelCatg").hide();
+		jQuery("#is_child").val('0');
+		jQuery("#is_nested").removeAttr('checked');
+		jQuery("#sub").removeAttr('disabled');
+	}
+}
+</script>

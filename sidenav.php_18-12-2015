@@ -1,0 +1,25 @@
+<table width="85%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+	<td height="15" align="left" valign="middle"></td>
+  </tr>
+  <tr>
+	<td align="left" valign="middle" class="side-head">Shortcuts</td>
+  </tr>
+  <tr>
+	<td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+		<tr>
+		  <td align="left" valign="top"><div id="div_shortcuts">
+			  <ul class="subMenu" id="subMenu">
+				<li id="0_lv"><a href="addproperty.php"><img src="images/home2.png" width="16" height="16" border=""/>&nbsp;Add Property</a></li>
+				<li id="1_lv"><a href="createcontact.php"><img src="images/createcontacts.gif" alt="Create Contact" align="absmiddle" border="0" height="16" width="16" />&nbsp;Create Contact</a></li>
+				<li id="2_lv"><a href="search.php"><img src="images/locate.png" alt="Search" align="absmiddle" border="0" />&nbsp;Search</a></li>
+				<li id="3_lv"><a href="viewByDbId.php"><img src="images/locate.png" alt="Search" align="absmiddle" border="0" />&nbsp;View By DB ID</a></li>
+				<li id="3_lv"><a href="webOnly.php"><img src="images/createcontacts.gif" alt="Search" align="absmiddle" border="0" />&nbsp;Web only report</a></li>
+				<li id="3_lv"><a href="saveToWeb.php"><img src="images/createcontacts.gif" alt="Search" align="absmiddle" border="0" />&nbsp;Save to web only</a></li>
+				<li id="3_lv"><a href="yahooMap.php"><img src="images/createcontacts.gif" alt="Maps" align="absmiddle" border="0" />&nbsp;Maps</a></li>
+			  </ul>
+		  </div></td>
+		</tr>
+	</table></td>
+  </tr>
+</table>

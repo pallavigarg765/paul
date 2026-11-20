@@ -1,0 +1,215 @@
+<? 
+	include('include/security.php');
+	include('include/dbcon.php');
+	include('include/functions.php');
+	$db = new DBConn();
+	$current_page = 'tags.php';
+	$criteria = "";
+
+$t_id=$lrow['tag_id']; 
+function is_child1($tag_id)
+{
+	$sql="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	
+	if(mysql_num_rows($ex)>0)
+	{
+		echo "<ul>";
+		while($rows=mysql_fetch_array($ex))
+		{
+			if($rows['color_code']!='')
+			{
+				$color_code=$rows['color_code'];
+			}
+			else 
+			{
+				$color_code="#F5F5F5";
+			}
+		?>
+			<li>
+				<div class="cel1"><?php echo $rows['tag_name']; ?></div>
+				<div class="cel2">
+					<span style="width:52px;height:16px; line-height:16px; text-align:center;background-color:<?php echo $color_code; ?>"><?php echo $row['color_code']; ?></span>
+				</div>
+				<div class="cel3">
+					<a href="edit-tag.php?id=<?php echo $rows['tag_id']?>" class="n">Edit</a> &nbsp; | &nbsp; <a href="javascript:if(confirm('Are you sure you want to delete it?')){window.location='tags.php?id=<?php echo $rows['tag_id']?>&del=delete'}" class="n">Delete</a>
+				</div>
+				<?php is_child1($rows['tag_id']); ?>
+			</li>
+<?php 
+		}
+		echo "</ul>";
+	}
+}
+
+	/*
+	$sql_list_query = "SELECT DISTINCT(`tag_name`),`tag_id`,`color_code` FROM `planitlo_crm`.`tags` ORDER BY tag_name ASC";
+	
+	
+	//echo $sql_list_query;
+	//$sql_list_query .= " GROUP BY property.id ";    
+	// Paging Details
+	$go = 1;
+	$perpage = 50 ;
+	if(isset($_REQUEST['go']) && $_REQUEST['go'] != '')
+		$go = $_REQUEST['go'];
+	if($go > 1){
+		$chkgo = "?go=".$go;
+	}
+	$offset = (($go * $perpage) - $perpage);
+	$result_total = $db->query($sql_list_query) or die(mysql_error()." ".$sql_list_query);
+	$totalrecs = $db->getNumRows($result_total);
+	$sql_list_query .= " limit $offset,$perpage";
+	$result = $db->query($sql_list_query) or die(mysql_error()." ".$sql_list_query);
+	$count=$db->getNumRows($result);
+	$total_pages = ceil($totalrecs / $perpage);
+	$start_var = $offset + 1;
+	$end_var_records = $count + (($go-1)*$perpage);
+	$end_var = $start_var + $perpage - 1;
+	$paging_var = "";
+	// Build Previous Pagin Link 
+	if($go > 1){ 
+		$prev = ($go - 1); 
+		$paging_var .= "<a href=\"".$current_page."?go=".$prev."\" style='text-decoration:none'><img src='images/previous.gif' alt='Previous' align='absmiddle' border='0' width='8' height='11' /> </a>"; 
+	} 
+	// Build Paging Link 
+	//for($i = 1; $i <= $total_pages; $i++){
+		$paging_var .=  "<span> (".($offset+1)." - ".($offset+$perpage)." of ".$totalrecs.") </span>"; 
+	//} 
+	// Build Next Paging Link 
+	if($go < $total_pages){ 
+		$next = ($go + 1); 
+		$paging_var .=  "<a href=\"".$current_page."?go=".$next."\"  style='text-decoration:none'><img src='images/next.gif' alt='Next' align='absmiddle' border='0' width='8' height='11' /> </a>"; 
+	}
+	$result = $db->query($sql_list_query) or die($sql_list_query);
+	
+	$badCategories = array("-a","-b","-c","-d","prv","Z");
+?>
+<?php 
+if($_REQUEST['del']=='delete')
+{
+	$sql="DELETE FROM `planitlo_crm`.`tags` WHERE `tag_id`='".$_REQUEST['id']."'";
+	$db->query($sql);
+	header("location:tags.php?success=4");
+}
+*/
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<link href="css/technocss.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+<? include("header.php"); ?>
+<table width="99%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap">
+	  
+	  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Manage Tags  &nbsp;&nbsp;</b> 
+				<a href="add-tags.php">Add Tags </a>
+			</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top" class="side-nav"><? include('sidenav.php');?></td>
+                  <td align="left" valign="top" class="mar"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td align="left" valign="top" class="moduleTitle">Manage Tags  </td>
+                      <td align="right" valign="top"><a class="utilsLink" href="add-tag.php" style="font-size:12px !important;text-decoration:none;">Add Tags </a></td>
+                    </tr>
+                  </table>
+                    <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td align="left" valign="top">
+						<?php 
+						if($_REQUEST['success']==4)
+						{
+							echo "Data successfully deleted.";
+						}
+						?>
+						<!-- <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                          <tr>
+                            <td width="25" height="18" align="left" valign="top">&nbsp;</td>
+                            <td width="107" align="left" valign="top">&nbsp;</td>
+							 <td width="107" align="left" valign="top">&nbsp;</td>
+                            <td colspan="5" align="right" valign="top"><span style="padding-right:10px;">
+                              <?php //$paging_var?>
+                            </span></span></td>
+                          </tr>
+						</table> -->
+						<ul class="tagColorTable tblhead">
+							<li>
+								<div class="cel1">Tags</div>
+								<div class="cel2">Color Code</div>
+								<div class="cel3">Action</div>
+							</li>
+						</ul>
+						
+                        <?php 
+						   $sel="SELECT * FROM `planitlo_crm`.`tags` WHERE `is_child`=0 ORDER BY tag_name ASC";
+							$exe=mysql_query($sel);
+							$mode=$_REQUEST['mode'];
+							$tag_id=$_REQUEST['tag_id'];
+							?>	
+							
+								<ul class="tagColorTable">
+								<?php 
+								while($rows=mysql_fetch_array($exe))
+								{
+									if($rows['color_code']!='')
+									{
+										$color_code=$rows['color_code'];
+									}
+									else 
+									{
+										$color_code="#F5F5F5";
+									}
+							?>
+									<li>
+										<div class="cel1"><?php echo $rows['tag_name']; ?></div>
+										<div class="cel2">
+											<span style="width:52px;height:16px; line-height:16px; text-align:center;background-color:<?php echo $color_code; ?>"><?php echo $rows['color_code']; ?></span>
+										</div>
+										<div class="cel3">
+											<a href="edit-tag.php?id=<?php echo $rows['tag_id']; ?>" class="n">Edit</a> &nbsp; | &nbsp; <a href="javascript:if(confirm('Are you sure you want to delete it?')){window.location='tags.php?id=<?php echo $rows['tag_id']; ?>&del=delete'}" class="n">Delete</a>
+										</div>
+									<?php 
+										$sql="SELECT * FROM `planitlo_crm`.`tags` WHERE  `is_child`='".$rows['tag_id']."'";
+										$ex=mysql_query($sql);
+										if(mysql_num_rows($ex)>0)
+										{
+											is_child1($rows['tag_id']);
+										}
+									?>
+									</li>	
+								<?php 
+								}
+								?>
+								</ul>
+                          <? //$cnt=$cnt+1; }  if($numrows < 1){ echo '<tr><td class="formtxt" colspan="6"> No Records against your search criteria.</td></tr>';} ?>
+						  <div class="spacer"></div>
+					</td>
+                      </tr>
+                    </table></td>
+    </tr>
+</table></td>
+                </tr>
+            </table></td>
+          </tr>
+        </tbody>
+      </table></td>
+    </tr>
+  </tbody>
+</table>
+<? include("footer.php");?>
+</body>
+</html>

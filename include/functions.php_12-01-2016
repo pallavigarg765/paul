@@ -1,0 +1,542 @@
+<?php
+function listbox_array($array,$name, $default='',$strname='0') {
+    if($strname == '0')
+		$result="<select name=\"$name\" class=\"dropdown\">";
+    if($default == '' || $default == '0'){
+		$result.= '<option value="" selected>--None--</option>';
+	}else{
+		$result.= '<option value="">--None--</option>';
+	}
+	foreach ($array as $key => $valueR) {
+        if ($default  == $valueR) {$selected="selected";} else {$selected="";}
+        $result.="<option value=\"$key\" $selected>$valueR</option>";
+    }
+	if($strname == '0')
+    	$result.="</select>";
+return $result;
+}
+function listbox_day ($name, $default=0) {
+    $result="<select name=".$name." class=clsvvday>";
+    if($default == 0){
+		$result.= "<option value=0 selected>Day</option>";
+	}
+	for ($d=1;$d<=31;$d++) {
+        if ($default  == $d) {$selected="selected";} else {$selected="";}
+        if ($d < 10 && strlen($d) < 2)
+			$d = '0'.$d;
+		$result.="<option value=".$d." $selected>$d</option>";
+    }
+    $result.="</select>";
+return $result;
+}
+
+function listbox_month ($name, $default=0) {
+    $result="<select name=".$name." class=clsvv2>";
+    if($default == 0){
+		$result.= "<option value=0 selected>Month</option>";
+	}
+	for ($m=1;$m<=12;$m++) {
+        if ($default  == $m) {$selected="selected";} else {$selected="";}
+        if ($m < 10 && strlen($m) < 2)
+			$m = '0'.$m;
+		$result.="<option value=".$m." $selected>".date(F, mktime(0,0,0,$m,1,2000))."</option>";
+    }
+    $result.="</select>";
+return $result;
+}
+
+function listbox_year ($name, $start, $end, $default=0) {
+    $result="<select name=".$name." class=clsvvyear>";
+	//if($default == 0){
+		$result.= "<option value=0>Year</option>";
+	for ($y=$end;$y>=$start;$y--) {
+        if ($default  == $y) {$selected="selected";} else {$selected="";}
+        $result.="<option value=".$y." $selected>$y</option>";
+    }
+    $result.="</select>";
+return $result;
+}
+
+function ReturnName($TableName,$FieldName,$IDField,$ID){
+	$retName="";
+	$strQry="SELECT $FieldName FROM $TableName  WHERE $IDField=$ID";
+	$nResult =mysql_query($strQry) or die("Unable 2 Work ".$strQry);
+
+	if (mysql_num_rows($nResult)>=1){
+		$row=mysql_fetch_object($nResult);
+		$retName=$row->$FieldName;
+	}	
+	
+	return $retName;		
+ }
+function upload_file($strElementName,$strPath){
+	// $userfile is where file went on webserver
+	$userfile = $_FILES[$strElementName]['tmp_name'];
+	// $userfile_name is original file name
+	$userfile_name = $_FILES[$strElementName]['name'];
+	// $userfile_size is size in bytes
+	$userfile_size = $_FILES[$strElementName]['size'];
+	// $userfile_type is mime type e.g. image/gif
+	$userfile_type = $_FILES[$strElementName]['type'];
+	// $userfile_error is any error encountered
+	$userfile_error = $_FILES[$strElementName]['error']; 
+			
+	// userfile_error was introduced at PHP 4.2.0
+	// use this code with newer versions 
+			
+	if ($userfile_error > 0) {
+		switch ($userfile_error){ 
+			case 1:
+				$strMessage="Problem :: File exceeded maximum file size(2MB)";
+				break;
+			case 2:
+				$strMessage="Problem :: File exceeded maximum file size(2MB)";
+				break;
+			case 3:
+				$strMessage="Problem :: File only partially uploaded";
+				break;
+			case 4:
+				$strMessage="Problem :: No file uploaded";
+				break;
+		}
+		return $strMessage;
+	} 
+			
+		
+	// is_uploaded_file and move_uploaded_file
+	if (is_uploaded_file($userfile)){
+		if (!move_uploaded_file($userfile, $strPath)){
+			$strMessage="Problem: Could not move file to destination directory";
+			return $strMessage;
+		}
+	} 
+	else {
+		$strMessage="Problem: Possible file upload attack. Filename: ".$userfile_name;
+		return $strMessage;
+	}
+	$strMessage="";
+	return $strMessage;
+}
+
+// delete file or image
+function deleteFI($strPath){
+	@unlink($strPath);
+}
+
+///Extension extractor
+
+function get_extension($str_name){
+
+	$str_ext = strrchr($str_name, '.');
+
+	return $str_ext; 
+
+}
+
+/* Combo Generation function*/
+
+function fillCombo($strCboName,$strTable,$numValueField,$strDisplayField,$strWhereClause,$numSelected,$strCssClass,$strJS,$strname='0', $strid=''){
+	
+	if($strname == '0')
+		print("<select name=\"$strCboName\" id=\"$strid\" class=\"$strCssClass\" $strJS>"); 
+	print("<option value=\"\" selected>- Select -</option>");
+
+	$strQuery="SELECT $numValueField AS ID,$strDisplayField AS VALUE FROM $strTable $strWhereClause";
+
+	//print($strQuery);
+	$strResult =mysql_query($strQuery) or die("Unable 2 Work");
+	
+
+	if (mysql_num_rows($strResult)>=1){ // if of number of rows checking
+
+		while ($row=mysql_fetch_object($strResult)){ // start while
+
+			if ($row->ID==$numSelected){
+				print("<option value=\"$row->ID\" selected>".addslashes($row->VALUE)."</option>");
+			}
+			else{
+				print("<option value=\"$row->ID\">".addslashes($row->VALUE)."</option>");
+			}
+		}// end while
+
+	}// end if number of rows checking
+			
+	if($strname == '0')
+		print("</select>");
+
+} 
+
+/* end of combo generation function */
+
+/* Month array */
+
+$month_array=array(
+          "1"=>"Jan",
+          "2"=>"Feb",
+          "3"=>"Mar",
+          "4"=>"Apr",
+          "5"=>"May",
+          "6"=>"Jun",
+          "7"=>"Jul",
+          "8"=>"Aug",
+          "9"=>"Sep",
+          "10"=>"Oct",
+          "11"=>"Nov",
+          "12"=>"Dec");
+		  
+/* Relationship Array */
+
+$arr_relationship = array(
+	  "1" => "Aunt",
+	  "2" => "Boyfriend",
+	  "3" => "Brother",
+	  "4" => "Brother-in-Law",
+	  "5" => "Cousin",
+	  "6" => "Daughter",
+	  "7" => "Daughter-in-Law",
+	  "8" => "Father",
+	  "9" => "Father-in-Law",
+	  "10" => "Fiance",
+	  "11" => "Friend",
+	  "12" => "Girlfriend",
+	  "13" => "Granddaughter",
+	  "14" => "Grandma",
+	  "15" => "Grandpa",
+	  "16" => "Grandson",
+	  "17" => "Husband",
+	  "18" => "Mother",
+	  "19" => "Mother-in-Law",
+	  "20" => "Nephew",
+	  "23" => "Niece",
+	  "24" => "Sister",
+	  "25" => "Sister-in-Law",
+	  "26" => "Son",
+	  "27" => "Son-in-Law",
+	  "28" => "Uncle",
+	  "29" => "Wife",
+	  "30" => "Work");
+
+/* Email function */
+
+function domail($str_message, $str_from_address, $str_from_subject, $str_to_address, $str_site_url){
+$str_mail = "
+	<style type=text/css>
+	<!--
+	.style1 {	font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 12px;
+		font-weight: bold;
+	}
+	.style2 {	font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 12px;
+	}
+	-->
+	</style>
+	<table width=525  border=0 cellpadding=1 cellspacing=0 bgcolor=#EBEBEB>
+	  <tr>
+	    <td><table width=100%  border=0 cellspacing=1 cellpadding=4>
+	        <tr bgcolor=#FFFFFF>
+	          <td><table width=100%  border=0 cellspacing=0 cellpadding=0>
+	              <tr>
+	                <td width=2%></td>
+	                <td width=98% align=right valign=bottom><span class=style1>$str_from_subject</span></td>
+	              </tr>
+	          </table></td>
+	        </tr>
+	        <tr bgcolor=#FFFFFF>
+	          <td height=5 bgcolor=#EE3733></td>
+	        </tr>
+	        <tr bgcolor=#FFFFFF>
+	          <td bgcolor=#FFFFFF><span class=style2>$str_message</span></td>
+	        </tr>
+	        <tr bgcolor=#FFFFFF>
+	          <td height=5 bgcolor=#CCCCCC></td>
+	        </tr>
+	    </table></td>
+	  </tr>
+	</table>	
+	";
+	print $str_to_address;
+	print $str_mail;
+	$str_headers .= "MIME-Version: 1.0\n";
+	$str_headers .= "Content-type: text/html; charset=iso-8859-1\n";
+	$str_headers .= "X-Priority: 1\n";
+	$str_headers .= "X-MSMail-Priority: High\n";
+	$str_headers .= "X-Mailer: php\n";
+	$str_headers .= "From: \"$str_from_address\" <".$str_from_address.">\n";
+	//mail($str_to_address, $str_from_subject, $str_mail, $str_headers);
+ }
+ function getHttpVars() {
+		$superglobs = array(
+			'_POST',
+			'_REQUEST',
+			'_GET',
+			'_FILES',
+			'HTTP_POST_VARS',
+			'HTTP_GET_VARS');
+		$httpvars = array();
+		// extract the right array
+		foreach ($superglobs as $glob) {
+			global $$glob;
+			if (isset($$glob) && is_array($$glob)) {
+				$httpvars = $$glob;
+			 }
+			if (count($httpvars) > 0)
+				break;
+		}
+		return $httpvars;
+	}
+function CheckUSPhoneNum( $PhoneNumber )
+ {
+        $PhoneNumber = ereg_replace( "[^0-9]", "", $PhoneNumber ); // Strip out non-numerics    
+
+        if( ereg( "^([0-9]{3})([0-9]{3})([0-9]{4})$", $PhoneNumber, $NumberParts ) )                                   
+                return "(" . $NumberParts[1] . ") " . $NumberParts[2] . "-" . $NumberParts[3];
+        else
+                return $PhoneNumber;
+}
+/*
+function loadTagsByPropertyID($propertyID)
+{
+
+	$properties="SELECT R.p_relation_id,R.property_id,T.tag_id,T.color_code,T.tag_name FROM planitlo_crm.properties_tags_relationships R JOIN planitlo_crm.tags T ON T.tag_id=R.tag_id WHERE property_id='".$propertyID."'";
+	$pro_exe=mysql_query($properties);													
+	
+	if(mysql_num_rows($pro_exe)>0)
+	{
+		while($v=mysql_fetch_array($pro_exe))
+		{
+
+			if($v['color_code']!='')
+			{
+				$tag_color=$v['color_code'];
+			}
+			else 
+			{
+				$tag_color="#F5F5F5";
+			}
+			
+			$str.='<div class="singleTag" style="background-color:'.$tag_color.'">'.$v["tag_name"].'<a href="javascript:void(0);" onclick="remove_propertytotags('.$v['p_relation_id'].','.$propertyID.');"><span class="close">X</span></a></div>';
+
+		}
+	}
+	else 
+	{
+		$str.="No tags are available.";
+	}
+	return $str;
+}
+*/
+function loadTagsByPropertyIDWithCommaSeparated($propertyID)
+{
+	$properties="SELECT R.p_relation_id,R.property_id,T.tag_name,T.tag_id,color_code FROM planitlo_crm.properties_tags_relationships R JOIN planitlo_crm.tags T ON T.tag_id=R.tag_id WHERE property_id='".$propertyID."'";
+	$pro_exe=mysql_query($properties);
+	$str='';
+	if(mysql_num_rows($pro_exe))
+	{
+		$cnt=0;
+		while($v=mysql_fetch_array($pro_exe))
+		{
+			$str.=$v['tag_name'];
+			if($cnt<mysql_num_rows($pro_exe)-1)
+			{
+				$str.=" , ";
+			}
+			$cnt++;
+		}
+	}
+	else 
+	{
+		$str.='No tags are available';
+	}
+	return $str;
+}
+function loadTagsByPropertyID($propertyID)
+{
+
+	$properties="SELECT R.p_relation_id,R.property_id,T.tag_name,T.tag_id,color_code FROM planitlo_crm.properties_tags_relationships R JOIN planitlo_crm.tags T ON T.tag_id=R.tag_id WHERE property_id='".$propertyID."'";
+	$pro_exe=mysql_query($properties);													
+	
+	if(mysql_num_rows($pro_exe)>0)
+	{
+		$str="<div class=\"propertyTags\">";
+		while($v=mysql_fetch_array($pro_exe))
+		{
+			if($v['color_code']!='')
+			{
+				$tag_color=$v['color_code'];
+			}
+			else 
+			{
+				$tag_color="#F5F5F5";
+			}
+			$str.='<div class="singleTag" style="background-color:'.$tag_color.'">'.$v["tag_name"].'<a href="javascript:void(0);" onclick="remove_services_tags('.$v['p_relation_id'].','.$propertyID.');"><span class="close">X</span></a></div>';
+		}
+		$str.="</div>";
+	}
+	else 
+	{
+		//$str="<p>No tags are available.";
+	}	
+	return $str;
+}
+function is_child($tag_id,$mode,$tag)
+{
+	/*if($mode=='edit') { if($tag==$rows['tag_id']) { ?> <img src="https://planitlocations.com/crm/images/right-sign.png" /><?php } } */ 
+	
+	$sql="SELECT * FROM planitlo_crm.tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	
+	if(mysql_num_rows($ex)>0)
+	{
+		echo "<ul>";
+		while($rows=mysql_fetch_array($ex))
+		{
+			if($rows['color_code']!='')
+			{
+				$tag_color=$rows['color_code'];
+			}
+			else 
+			{
+				$tag_color="#FFFFFF";
+			}
+		?>
+			<li class="tags"><span style="background-color:<?php echo $tag_color; ?>" id="tag_<?php echo $rows['tag_id']; ?>"><?php echo $rows['tag_name']; ?></span>
+			
+			<?php 				
+				is_child($rows['tag_id'],$mode,$tag);									
+			?>
+			</li>
+<?php 
+		}
+		echo "</ul>";
+	}
+}
+function getAllParentsChildsTags($allPostedTags)
+{
+	$arrTags=array();
+	if(count($allPostedTags)>0)
+	{
+		for($cnt=0;$cnt<count($allPostedTags);$cnt++)
+		{ 
+			$getAllChild=getAllChild($allPostedTags[$cnt]);
+			array_push($arrTags,$getAllChild);
+		}
+	}
+	$arr_pop=array_pop($arrTags);
+	$mergeArray=array_merge($allPostedTags,$arr_pop);
+	return $mergeArray;
+}
+function getAllChild($tag_id) 
+{    
+	static $arr =array(); 
+	$sql="SELECT * FROM planitlo_crm.tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	if(mysql_num_rows($ex) > 0) 
+	{	
+		while($row = mysql_fetch_array($ex)) 
+		{
+			$arr[]=$row['tag_id'];
+			getAllChild($row['tag_id']);
+        }
+    }
+    return $arr;
+}
+function allsubChilds($tag_id,$tags,$property_id)
+{
+	$sql="SELECT * FROM planitlo_crm.tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	
+	if(mysql_num_rows($ex)>0)
+	{
+		echo "<ul class=\"tagColorTable\">";
+		while($rows=mysql_fetch_array($ex))
+		{
+			if($rows['color_code']!='')
+			{
+				$tag_color=$rows['color_code'];
+			}
+			else 
+			{
+				$tag_color="#FFFFFF";
+			}
+		?>
+			<li>
+				<div class="cel1">
+					<input type="checkbox" value="<?php echo $rows["tag_id"]; ?>" <?php if(in_array($rows["tag_id"],$tags)==TRUE) { ?> checked <?php } ?> onclick="add_tags('<?php echo $property_id; ?>')" /><?php echo $rows["tag_name"]; ?>
+				</div>
+				<div class="cel2">
+					&nbsp;&nbsp;<span style="width:32px; height:12px; border:1px solid #C5C5C5; background-color:<?php echo $tag_color; ?>"></span>
+				</div>
+			
+			<?php 				
+				allsubChilds($rows['tag_id'],$tags,$property_id);									
+			?>
+			</li>
+<?php 
+		}
+		echo "</ul>";
+	}
+}
+function getallChildtags($tag_id)
+{
+	$sql="SELECT * FROM planitlo_crm.tags WHERE is_child='".$tag_id."'";
+	$ex=mysql_query($sql);	
+	
+	if(mysql_num_rows($ex)>0)
+	{
+		echo "<ul class=\"tagColorTable\">";
+		while($rows=mysql_fetch_array($ex))
+		{
+			if($rows['color_code']!='')
+			{
+				$tag_color=$rows['color_code'];
+			}
+			else 
+			{
+				$tag_color="#FFFFFF";
+			}
+		?>
+			<li  id="remForAjax_<?php echo $rows['tag_id']; ?>">
+				<div class="cel1">				
+					<?php echo $rows['tag_name']; ?>
+				</div>
+				<div class="cel2">
+					&nbsp;&nbsp;<span style="width:32px; height:12px; border:1px solid #C5C5C5; background-color:<?php echo $tag_color; ?>"></span>
+				</div>
+				<div class="cel3">
+					<a href="javascript:;" id="edit_<?php echo $rows['tag_id'];?>" class="n doEdit">Edit</a>	&nbsp; | &nbsp; 
+					<a href="javascript:;" id="del_<?php echo $rows['tag_id']; ?>" class="n doDelete">Delete</a>
+					<!-- <a href="javascript:;" id="del_<?php //echo $rows['tag_id']; ?>" class="doDelete"><i class="fa fa-close"></i></a>
+					<a href="javascript:;" id="edit_<?php //echo $rows['tag_id'];?>" class="doEdit"><i class="fa fa-pencil"></i></a> -->
+				</div>
+			
+			<?php 				
+				getallChildtags($rows['tag_id']);									
+			?>
+			</li>
+<?php 
+		}
+		echo "</ul>";
+	}
+}
+function getallparenttagsid($tag_id)
+{
+	$sel="SELECT * FROM tags WHERE is_child='".$tag_id."'";
+	$exsel=mysql_query($sel);
+	static $arr=array();
+	if(mysql_num_rows($exsel)>0)
+	{
+		while($rows=mysql_fetch_array($exsel))
+		{
+			$arr[]=$rows['is_child'];
+			$selx="SELECT * FROM tags WHERE is_child='".$rows['tag_id']."'";
+			$exselx=mysql_query($selx);
+			if(mysql_num_rows($exselx)>0)
+			{				
+				getallparenttagsid($rows['tag_id']);
+			}
+		}
+	}
+	return array_unique($arr);
+}
+?>

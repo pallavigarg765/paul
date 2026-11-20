@@ -1,0 +1,1195 @@
+<? 
+	include('include/security.php');
+	include('include/dbcon.php');
+	include('include/config.php');
+	include('include/functions.php');
+	$db = new DBConn();
+	if(isset($_REQUEST['hdnproperty']) && $_REQUEST['hdnproperty'] == '1'){
+		$create_date = strtotime(date("Y-m-d"));
+		// Insert Property Information
+		
+		if($_REQUEST['txtproperty_id'] == '') { $txtproperty_id = 0; }
+		if($_REQUEST['txtwebid'] == '') { $txtwebid = 0; }
+		if($_REQUEST['txtotherpropertyid'] == '') { $txtotherpropertyid = 0; }
+		if($_REQUEST['txtaddress'] == '') { $txtaddress = 0; }
+		if($_REQUEST['txtaddress2'] == '') { $txtaddress2 = 0; }
+		if($_REQUEST['txtcompanyname'] == '') { $txtcompanyname = 0; }
+		if($_REQUEST['txtcounty'] == '') { $txtcounty = '0'; }
+		if($_REQUEST['txtcountry'] == '') { $txtcountry = '0'; }
+		if($_REQUEST['txtaudit1'] == '') { $txtaudit1 = 0; }
+		if($_REQUEST['txtstate'] == '') { $txtstate = 0; }
+		if($_REQUEST['txtaudit2'] == '') { $txtaudit2 = 0; }
+		if($_REQUEST['txtaudit3'] == '') { $txtaudit3 = 0; }
+		if($_REQUEST['txttaxaudit'] == '') { $txttaxaudit = 0; }
+		if($_REQUEST['txtzipcode'] == '') { $txtzipcode = 0; }
+		if($_REQUEST['txtcity'] == '') { $txtcity = 0; }
+		
+		if($txtcounty != '0'){
+			$sqlCounty = "SELECT id FROM county_new WHERE name = '".$txtcounty."'";
+			//echo $sqlCounty;
+			if($resCounty = mysql_query($sqlCounty)){
+				if(mysql_num_rows($resCounty) > 0){
+					$rowCounty = mysql_fetch_array($resCounty);
+					$txtcounty = $rowCounty['id'];
+				}else{
+					$insCounty = "INSERT INTO county_new (name) VALUES ('".$txtcounty."')";
+					if(mysql_query($insCounty)){
+						$txtcounty = mysql_insert_id();
+					}
+				}
+			}else{
+				$txtcounty = '0';
+			}
+		}
+		$sql = "INSERT INTO property (userid,property_id,company,webid,otherpropertyid,address,address2,state,zipcode,city,county,country,
+				audit1,audit2,audit3,taxaudit,created_date) VALUES(
+		'".$_SESSION['userid']."','".trim(addslashes($txtproperty_id))."','".addslashes($txtcompanyname)."','".addslashes($txtwebid)."','".addslashes($txtotherpropertyid)."','".addslashes($txtaddress)."','".addslashes($txtaddress2)."','".addslashes($txtstate)."','".addslashes($txtzipcode)."','".addslashes($txtcity)."','".addslashes($txtcounty)."','".addslashes($txtcountry)."','".addslashes($txtaudit1)."','".addslashes($txtaudit2)."','".addslashes($txtaudit3)."','".addslashes($txttaxaudit)."','".$create_date."')";
+		$db->query($sql) or die($sql." ".mysql_error());		
+		$property_id = mysql_insert_id();
+		
+		if(isset($_POST['txtParent']) && !empty($_POST['txtParent'])){
+			$childId = $property_id;
+			$sqlGetParent = "SELECT id FROM property WHERE property_id = '".mysql_real_escape_string($_POST['txtParent'])."'";
+			if($resGetParent = mysql_query($sqlGetParent)){
+				if(mysql_num_rows($resGetParent) > 0){
+					$rowGetParent = mysql_fetch_array($resGetParent);
+					$parentId = $rowGetParent['id'];
+					if(!empty($childId) && !empty($parentId)){
+						$sqlPC = "INSERT INTO parent_child (parent_id, child_id) VALUES ('".$parentId."', '".$childId."')";
+						if(mysql_query($sqlPC)){
+							$sqlUpdateProp = "UPDATE property SET is_child = '1' WHERE id = '".$childId."'";
+							if(mysql_query($sqlUpdateProp)){
+								$info = "Saved.";
+							}else{
+								echo mysql_error();
+								die;
+							}
+						}else{
+							echo mysql_error();
+							die;
+						}
+					}else{
+						$info = "No parent property found.";
+					}
+				}else{
+					$info = "No parent property found.";
+				}
+			}else{
+				echo mysql_error();
+				die;
+			}
+		}
+		
+		//Add Contacts
+		if(isset($_REQUEST['hdnaddcontact']) && $_REQUEST['hdnaddcontact'] == 1){
+			$name = $_REQUEST['txtfname'];
+			foreach($name as $ckey => $cvalue){
+				if($_REQUEST['txtfname'][$ckey] !='' || $_REQUEST['txtlname'][$ckey] !='' || $_REQUEST['txttitle'][$ckey] !='' || 
+				$_REQUEST['txtspousename'][$ckey] !='' || $_REQUEST['txtemail'][$ckey] !='' || $_REQUEST['txtwebsite'][$ckey] !='' 
+				|| $_REQUEST['txtrelation'][$ckey] !='' || $_REQUEST['txtcontactnotes'][$ckey] !=''){	
+					$create_date = strtotime(date("Y-m-d"));
+					$sql = "INSERT INTO contact (userid,firstname,lastname,title,spousename,email,website,relationship,notes,create_date) VALUES(
+					'".$_SESSION['userid']."','".addslashes($_REQUEST['txtfname'][$ckey])."','".addslashes($_REQUEST['txtlname'][$ckey])."',
+					'".addslashes($_REQUEST['txttitle'][$ckey])."','".addslashes($_REQUEST['txtspousename'][$ckey])."','".addslashes($_REQUEST['txtemail'][$ckey])."',
+					'".addslashes($_REQUEST['txtwebsite'][$ckey])."','".addslashes($_REQUEST['txtrelation'][$ckey])."','".addslashes($_REQUEST['txtcontactnotes'][$ckey])."','".$create_date."')";
+					$db->query($sql) or die($sql);		
+					$contactid = mysql_insert_id();
+					$sql = "INSERT INTO contact_to_property(contact_id,property_id) VALUES(".$contactid.",".$property_id.")";
+					$db->query($sql) or die($sql);
+					$phone = $_REQUEST['txtphone'.$ckey];
+					foreach($phone as $key => $value){
+						//if($value != ''){
+							if($_REQUEST['txttype'.$ckey][$key] == '') { $_REQUEST['txttype'.$ckey][$key] = '0'; } 
+							if($_REQUEST['txtpriority'.$ckey][$key] == '') { $_REQUEST['txtpriority'.$ckey][$key] = '0'; } 
+							
+							$sql = "INSERT INTO phone (contact_id,number,ext,type,priority) VALUES(
+							'".$contactid."','".$_REQUEST['txtphone'.$ckey][$key]."','".$_REQUEST['txtext'.$ckey][$key]."',
+							'".$_REQUEST['txttype'.$ckey][$key]."','".$_REQUEST['txtpriority'.$ckey][$key]."')";
+							if(!$db->query($sql)) echo mysql_error();
+							//echo $sql;
+						//}		
+					}
+				}
+			}
+		}
+		
+		
+		// Insert Location Information3
+		if($_REQUEST['txtlicense'] != '' || $_REQUEST['txtsquarefeet'] != '' || $_REQUEST['txtlimitareas'] != ''
+		 || $_REQUEST['txtneighbors'] != '' || $_REQUEST['txtanimals'] != '' || $_REQUEST['txtdatebuilt'] != ''
+		  || $_REQUEST['txtpreviousfilming'] != '' || $_REQUEST['txtparking'] != '' || $_REQUEST['txtbedroom'] != ''
+		   || $_REQUEST['txtrestroom'] != '' || $_REQUEST['txtreferalform'] != '' || $_REQUEST['txtadultfriendly'] != ''
+		    || $_REQUEST['txtpool'] != '' || $_REQUEST['txttennisecourt'] != '' || $_REQUEST['txtcityview'] != ''
+			|| $_REQUEST['txtnicebackyard'] != '' || $_REQUEST['txthomeassociation'] != ''
+			 || $_REQUEST['txtarchitect'] != '' || $_REQUEST['txthousename'] != '' || $_REQUEST['txtnewpropertyowner'] != ''
+			  || $_REQUEST['txtfilmingorevents'] != ''){
+				$datebuilt = $_REQUEST['txtdatebuilt'];
+				
+				if($_REQUEST['txtlicense'] == '') { $txtlicense = '0'; }
+				if($_REQUEST['txtsquarefeet'] == '') { $txtsquarefeet = '0'; }
+				if($_REQUEST['txtlimitareas'] == '') { $txtlimitareas = '0'; }
+				if($_REQUEST['txtneighbors'] == '') { $txtneighbors = '0'; }
+				if($_REQUEST['txtanimals'] == '') { $txtanimals = '0'; }
+				if($_REQUEST['txtpreviousfilming'] == '') { $txtpreviousfilming = '0'; }
+				if($_REQUEST['txtparking'] == '') { $txtparking = '0'; }
+				if($_REQUEST['txtbedroom'] == '') { $txtbedroom = '0'; }
+				if($_REQUEST['txtrestroom'] == '') { $txtrestroom = '0'; }
+				if($_REQUEST['txtreferalform'] == '') { $txtreferalform = '0'; }
+				if($_REQUEST['txtadultfriendly'] == '') { $txtadultfriendly = '0'; }
+				if($_REQUEST['txtpool'] == '') { $txtpool= '0'; }
+				if($_REQUEST['txttennisecourt'] == '') { $txttennisecourt= '0'; }
+				if($_REQUEST['txtcityview'] == '') { $txtcityview= '0'; }
+				if($_REQUEST['txtnicebackyard'] == '') { $txtnicebackyard= '0'; }
+				if($_REQUEST['txthomeassociation'] == '') { $txthomeassociation= '0'; }
+				if($_REQUEST['txtarchitect'] == '') { $txtarchitect= '0'; }
+				if($_REQUEST['txthousename'] == '') { $txthousename= '0'; }
+				if($_REQUEST['txtnewpropertyowner'] == '') { $txtnewpropertyowner= '0'; }
+				if($_REQUEST['txtfilmingorevents'] == '') { $txtfilmingorevents= '0'; }
+				
+				
+				$sql = "INSERT INTO location (property_id,license,squarefit,limitareas,neighbors,animals,datebuilt,
+				previousfilming,parking,bedroom,restroom,referalform,adultfriendly,pool,tennisecourt,cityview,nicebackyard,
+				homeassociation,architect,housename,newpropertyowner,filmingorevents,create_date) VALUES(
+			'".addslashes($property_id)."','".addslashes($txtlicense)."','".addslashes($txtsquarefeet)."','".addslashes($txtlimitareas)."',
+			'".addslashes($txtneighbors)."','".addslashes($txtanimals)."','".addslashes($datebuilt)."','".addslashes($txtpreviousfilming)."',
+			'".addslashes($txtparking)."','".addslashes($txtbedroom)."','".addslashes($txtrestroom)."','".addslashes($txtreferalform)."',
+			'".addslashes($txtadultfriendly)."','".addslashes($txtpool)."','".addslashes($txttennisecourt)."',
+			'".addslashes($txtcityview)."','".addslashes($txtnicebackyard)."','".addslashes($txthomeassociation)."',
+			'".addslashes($txtarchitect)."','".addslashes($txthousename)."','".addslashes($txtnewpropertyowner)."',
+			'".addslashes($txtfilmingorevents)."','".$create_date."')";
+				$db->query($sql) or die($sql);
+			if($_REQUEST['txtnotes'] != ''){
+				
+				if($_REQUEST['txtproperty_id'] == '') { $txtproperty_id = '0'; }
+				if($_REQUEST['txtnotes'] == '') { $txtnotes = '0'; }
+				
+				$sql = "INSERT INTO notes (property_id,type,text) VALUES('".addslashes($property_id)."',1,'".addslashes($txtnotes)."')";
+				$db->query($sql) or die($sql);
+			}
+					
+		}
+		// Insert Budget Information
+		if($_REQUEST['txthighbudget'] != '' || $_REQUEST['txtmediumbudget'] != '' || $_REQUEST['txtlowbudget'] != ''
+		 || $_REQUEST['txtbudgetnotes'] != '' || $_REQUEST['txtfilmfriendly'] != '' || $_REQUEST['txtinteriorfilming'] != ''
+		  || $_REQUEST['txtexteriorfilming'] != '' || $_REQUEST['txtfilmbudget'] != '' || $_REQUEST['txtfilmmaxheat'] != ''
+		   || $_REQUEST['txtfilmparking'] != '' || $_REQUEST['txteventfriendly'] != ''
+		    || $_REQUEST['txtinteriorevent'] != '' || $_REQUEST['txtexteriorevent'] != '' || $_REQUEST['txteventbudget'] != ''
+			 || $_REQUEST['txteventmaxheat'] != '' || $_REQUEST['txteventparking'] != ''){
+			 
+				if($_REQUEST['txthighbudget'] == '') { $txthighbudget = '0'; }
+				if($_REQUEST['txtmediumbudget'] == '') { $txtmediumbudget = '0'; }
+				if($_REQUEST['txtlowbudget'] == '') { $txtlowbudget = '0'; }
+				if($_REQUEST['txtbudgetnotes'] == '') { $txtbudgetnotes = '0'; }
+				if($_REQUEST['txtfilmfriendly'] == '') { $txtfilmfriendly = '0'; }
+				if($_REQUEST['txtinteriorfilming'] == '') { $txtinteriorfilming = '0'; }
+				if($_REQUEST['txtexteriorfilming'] == '') { $txtexteriorfilming = '0'; }
+				if($_REQUEST['txtfilmbudget'] == '') { $txtfilmbudget = '0'; }
+				if($_REQUEST['txtfilmmaxheat'] == '') { $txtfilmmaxheat = '0'; }
+				if($_REQUEST['txtfilmparking'] == '') {  $txtfilmparking = '0'; }
+				if($_REQUEST['txteventfriendly'] == '') { $txteventfriendly = '0'; }
+				if($_REQUEST['txtinteriorevent'] == '') { $txtinteriorevent = '0'; }
+				if($_REQUEST['txtexteriorevent'] == '') { $txtexteriorevent = '0'; }
+				if($_REQUEST['txteventbudget'] == '') {  $txteventbudget = '0'; }
+				if($_REQUEST['txteventmaxheat'] == '') { $txteventmaxheat = '0'; }
+				if($_REQUEST['txteventparking'] == '') { $txteventparking = '0'; }
+			 
+				$sql = "INSERT INTO budget (property_id,highbudget,mediumbudget,lowbudget,budgetnotes,filmfriendly,interiorfilming,
+				exteriorfilming,filmbudget,filmmaxheat,filmparking,eventfriendly,interiorevent,exteriorevent,eventbudget,
+				eventmaxheat,eventparking,create_date) VALUES(
+			'".$property_id."','".addslashes($txthighbudget)."','".addslashes($txtmediumbudget)."','".addslashes($txtlowbudget)."',
+			'".addslashes($txtbudgetnotes)."','".addslashes($txtfilmfriendly)."','".addslashes($txtinteriorfilming)."',
+			'".addslashes($txtexteriorfilming)."','".addslashes($txtfilmbudget)."','".addslashes($txtfilmmaxheat)."',
+			'".addslashes($txtfilmparking)."','".addslashes($txteventfriendly)."',
+			'".addslashes($txtinteriorevent)."','".addslashes($txtexteriorevent)."','".addslashes($txteventbudget)."',
+			'".addslashes($txteventmaxheat)."','".addslashes($txteventparking)."','".$create_date."')";
+				$db->query($sql) or die($sql);
+			if($_REQUEST['txtfilmnotes'] != ''){
+				if($_REQUEST['txtfilmnotes'] == '') { $txtfilmnotes = '0'; }
+				$sql = "INSERT INTO notes (property_id,type,text,userid) VALUES('".$property_id."',2,'".addslashes($txtfilmnotes)."',
+						'".$_SESSION['userid']."')";
+				$db->query($sql) or die($sql);
+			}
+			if($_REQUEST['txteventnotes'] != ''){
+				if($_REQUEST['txteventnotes'] == '') { $txteventnotes = '0'; }
+				$sql = "INSERT INTO notes (property_id,type,text,userid) VALUES('".$property_id."',3,'".addslashes($txteventnotes)."',
+						'".$_SESSION['userid']."')";
+				$db->query($sql) or die($sql);
+			}
+		}
+		// Insert Tax Information
+		if($_REQUEST['txttaxcompany'] != '' || $_REQUEST['txttaxfirstname'] != '' || $_REQUEST['txttaxlastname'] != ''
+		 || $_REQUEST['txttaxaddress'] != '' || $_REQUEST['txttaxaddress2'] != '' || $_REQUEST['txttaxcity'] != ''
+		  || $_REQUEST['txttaxstate'] != '' || $_REQUEST['txttaxzipcode'] != '' || $_REQUEST['txttaxamount'] != ''
+		   || $_REQUEST['txttaxnotes1'] != '' || $_REQUEST['txttaxnotes2'] != '' || $_REQUEST['txtmailtaxes'] != ''
+		    || $_REQUEST['txtquestionable'] != ''){
+			
+			if($_REQUEST['txttaxcompany'] == '') { $txttaxcompany = '0'; }
+			if($_REQUEST['txttaxfirstname'] == '') { $txttaxfirstname = '0'; }
+			if($_REQUEST['txttaxlastname'] == '') { $txttaxlastname = '0'; }
+			if($_REQUEST['txttaxaddress'] == '') { $txttaxaddress = '0'; }
+			if($_REQUEST['txttaxaddress2'] == '') { $txttaxaddress2 = '0'; }
+			if($_REQUEST['txttaxcity'] == '') { $txttaxcity = '0'; }
+			if($_REQUEST['txttaxstate'] == '') { $txttaxstate = '0'; }
+			if($_REQUEST['txttaxzipcode'] == '') { $txttaxzipcode = '0'; }
+			if($_REQUEST['txttaxamount'] == '') { $txttaxamount = '0'; }
+			if($_REQUEST['txttaxnotes1'] == '') { $txttaxnotes1 = '0'; }
+			if($_REQUEST['txttaxnotes2'] == '') { $txttaxnotes2 = '0'; }
+			if($_REQUEST['txtmailtaxes'] == '') { $txtmailtaxes = '0'; }
+			if($_REQUEST['txtquestionable'] == '') { $txtquestionable = '0'; }
+			
+			$sql = "INSERT INTO tax (property_id,company,firstname,lastname,address,address2,city,state,zipcode,amount,notes1,notes2,
+				mailtaxes,questionable,create_date) VALUES(
+			'".$property_id."','".addslashes($txttaxcompany)."','".addslashes($txttaxfirstname)."','".addslashes($txttaxlastname)."',
+			'".addslashes($txttaxaddress)."','".addslashes($txttaxaddress2)."','".addslashes($txttaxcity)."',
+			'".addslashes($txttaxstate)."','".addslashes($txttaxzipcode)."','".addslashes($txttaxamount)."',
+			'".addslashes($txttaxnotes1)."','".addslashes($txttaxnotes2)."','".addslashes($txtmailtaxes)."',
+			'".addslashes($txtquestionable)."','".$create_date."')";
+				$db->query($sql) or die($sql);
+		}   		
+		header("Location: property.php?id=".$property_id);
+	}
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript" src="js/calendar.js"></script>
+<script>
+<!--
+function openwindow(){
+	window.open('selectcontact.php','contactwin','height=300,width=800');
+}
+function addContact(){ 
+	if(document.getElementById("addContact").style.display == 'none')
+		document.getElementById("addContact").style.display = 'block';
+	else
+		document.getElementById("addContact").style.display = 'none';
+}
+function addContactInfo(){
+	if(document.getElementById("addcontactinfo").style.display == 'none'){
+		document.getElementById("addcontactinfo").style.display = 'block';
+		document.getElementById("addContact").style.display = 'none';
+	}
+	else{
+		document.getElementById("addcontactinfo").style.display = 'none';
+		document.getElementById("addContact").style.display = 'block';
+	}
+}
+function addLocation(){ 
+	if(document.getElementById("addLocation").style.display == 'none')
+		document.getElementById("addLocation").style.display = 'block';
+	else
+		document.getElementById("addLocation").style.display = 'none';
+}
+function addBudget(){ 
+	if(document.getElementById("addBudget").style.display == 'none')
+		document.getElementById("addBudget").style.display = 'block';
+	else
+		document.getElementById("addBudget").style.display = 'none';
+}
+function addTax(){ 
+	if(document.getElementById("addTax").style.display == 'none')
+		document.getElementById("addTax").style.display = 'block';
+	else
+		document.getElementById("addTax").style.display = 'none';
+}
+function addPhonetypes(type_number){
+	hdnphone = document.getElementById("hdnaddphonetype"+type_number).value;
+	newhdnphone = hdnphone;
+	newhtml = '<table width="99%" border="0" cellpadding="0" cellspacing="0"><tr><td width="29%" align="left" valign="top" class="formtxt">Phone:</td><td width="29%" align="left" valign="top" class="formtxt">Ext:</td><td width="27%" align="left" valign="top" class="formtxt">Type:</td><td width="18%" align="center" valign="top" class="formtxt">Priority:</td></tr><tr><td align="left" valign="top" width="29%"><input name="txtphone'+type_number+'[]" type="text" class="form phone" id="txtphone'+type_number+'[]" size="25" maxlength="50" /></td><td align="left" valign="top" width="29%"><input name="txtext'+type_number+'[]" type="text" class="form" id="txtext'+type_number+'[]" size="25" maxlength="10" /></td><td align="left" valign="top" width="27%"><select name="txttype'+type_number+'[]" class="dropdown"><?=fillCombo('txttype[]','types','id','name','WHERE active=1 AND id < 15','','dropdown','','1')?></select></td><td align="right" valign="top" width="18%"><select class="dropdown" name="txtpriority'+type_number+'[]"><?=listbox_array($priorityArray,'txtpriority[]','','1')?></select></td></tr></table>';
+	if(document.getElementById("phonetype"+type_number+hdnphone)){
+		newhdnphone++;
+		document.getElementById("phonetype"+type_number+hdnphone).style.display = 'block';
+		document.getElementById("phonetype"+type_number+hdnphone).innerHTML = newhtml +'<div id="phonetype'+type_number+newhdnphone+'" style="display:none"></div>';
+	}
+	document.getElementById("hdnaddphonetype"+type_number).value = newhdnphone;
+}
+function verifyaddproperty(){
+	
+	return true;
+}
+function addmorecontact(){
+	hdncontact = document.getElementById("hdnmorecontact").value;
+	newhdncontact = hdncontact;
+	newhtml = '<table width="100%" border="0" cellspacing="0" cellpadding="1">';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td width="29%" align="left" valign="top"><span class="formtxt">First Name:</span></td>';
+    newhtml +=     '<td width="23%" align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td width="48%" align="left" valign="top"><span class="formtxt">Last Name:</span></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtfname[]" id="txtfname[]" type="text" class="form" size="35" maxlength="255" /></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtlname[]" id="txtlname[]" type="text" class="form" size="35" maxlength="255" /></td>';
+    newhtml +=      '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><span class="formtxt">Title:</span></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top"><span class="formtxt">Spouse Name: </span></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><input name="txttitle[]" id="txttitle[]" type="text" class="form" value="" size="35" maxlength="255"/></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtspousename[]" type="text" class="form" id="txtspousename[]" ize="35" maxlength="255" /></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><span class="formtxt">Email:</span></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top"><span class="formtxt">Website:</span></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtemail[]" type="text" class="form" id="txtemail[]" size="35" maxlength="255" /></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtwebsite[]" id="txtwebsite[]" type="text" class="form" size="35" maxlength="255" /></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><span class="formtxt">Relationship:</span></td>';
+    newhtml +=     '<td align="left" valign="top" class="formtxt">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><?=listbox_array($relationshipArray,'txtrelation[]')?></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><span class="formtxt">Note:</span></td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td colspan="3" align="left" valign="top"><textarea name="txtcontactnotes[]" id="txtcontactnotes[]" cols="40" rows="4" class="txtarea"></textarea>                  </td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td colspan="3" align="left" valign="top"><div id="phonetype">';
+    newhtml +=     '<table width="99%" border="0" cellpadding="0" cellspacing="0">';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td width="29%" align="left" valign="top" class="formtxt">Phone:</td>';
+    newhtml +=     '<td width="29%" align="left" valign="top" class="formtxt">Ext:</td>';
+    newhtml +=     '<td width="27%" align="left" valign="top" class="formtxt">Type:</td>';
+    newhtml +=     '<td width="18%" align="center" valign="top" class="formtxt">Priority:</td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtphone'+hdncontact+'[]" type="text" class="form phone" id="txtphone'+hdncontact+'[]" size="25" maxlength="50" /></td>';
+    newhtml +=     '<td align="left" valign="top"><input name="txtext'+hdncontact+'[]" type="text" class="form" id="txtext'+hdncontact+'[]" size="25" maxlength="10" /></td>';
+    newhtml +=     '<td align="left" valign="top"><select name="txttype'+hdncontact+'[]" class="dropdown"><?=fillCombo('txttype[]','types','id','name','WHERE active=1 AND id < 15','','dropdown','','1')?></td></select>';
+    newhtml +=     '<td align="right" valign="top"><select name="txtpriority'+hdncontact+'[]" class="dropdown"><?=listbox_array($priorityArray,'txtpriority[]','','1')?></select></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '</table>';
+    newhtml +=     '</div>';
+    newhtml +=     '<input name="hdnaddphonetype'+hdncontact+'" id="hdnaddphonetype'+hdncontact+'" type="hidden" value="1" />';
+    newhtml +=     '<div id="phonetype'+hdncontact+'1" style="display:none"></div></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td height="35" align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td height="35" align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td height="35" align="right" valign="middle"><input name="addcontactinfo" id="addcontactinfo" type="hidden" value="1" /><input name="Button5" type="button" class="button" value="Add More" onclick="addPhonetypes('+hdncontact+');"/></td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td colspan="3" align="left" valign="top"><table width="60%" border="0" cellspacing="0" cellpadding="0">';
+    newhtml +=     '<tr>';
+    newhtml +=     '<td width="7%" align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '<td width="18%" align="left" valign="top"><span class="dataField"><span class="dataLabel" style="display: inline;">';
+    //newhtml +=     '<input name="hdnaddcontact" type="hidden" value="1" />';
+    newhtml +=     '</span></span></td>';
+    newhtml +=     '<td width="68%" align="left" valign="top"><div id="addmbtn0"><input name="Button52" type="button" class="button" value="Add More Contact" onclick="addmorecontact();"/></div></td>';
+    newhtml +=     '<td width="7%" align="left" valign="top">&nbsp;</td>';
+    newhtml +=     '</tr>';
+    newhtml +=     '</table></td>';
+    newhtml +=     '</tr>';
+    newhtml +=  '</table>';
+	if(document.getElementById("morecontact"+hdncontact)){
+		newhdncontact++;
+		document.getElementById("morecontact"+hdncontact).style.display = 'block';
+		document.getElementById("morecontact"+hdncontact).innerHTML = newhtml +'<div id="morecontact'+newhdncontact+'" style="display:none"></div>';
+	}
+	document.getElementById("hdnmorecontact").value = newhdncontact;
+}
+function MM_jumpMenu(targ,selObj,restore){ //v3.0
+  eval(targ+".location='"+selObj.options[selObj.selectedIndex].value+"'");
+  if (restore) selObj.selectedIndex=0;
+}
+
+function validateNumber(event) {
+    var key = window.event ? event.keyCode : event.which;
+
+    if (event.keyCode == 8 || event.keyCode == 46
+     || event.keyCode == 37 || event.keyCode == 39) {
+        return true;
+    }
+    else if ( key < 48 || key > 57 ) {
+        return false;
+    }
+    else return true;
+};
+
+//-->
+</script>
+</head>
+
+<body>
+<? include("header.php"); ?>
+<table width="99%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap"><table width="100%" border="0" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Create Contact </b> </td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top" class="side-nav"><? include('sidenav.php');?></td>
+                  <td align="left" valign="top" class="mar"><table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap"><form id="form1" name="form1" method="post" action="" onsubmit="return verifyaddproperty();">
+        <table width="60%" border="0" cellspacing="0" cellpadding="0">
+			<tr>
+				<td class="formtxt" colspan="3">
+					Select parent property (optional):<br /><br />
+					<input class="form" type="text" size="35" id="txtParent" name="txtParent" /><br /><br />
+				</td>
+			</tr>
+          <tr>
+            <td width="31%" align="left" valign="top" class="formtxt">Property ID: </td>
+            <td width="21%" align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top"><span class="formtxt">Address:</span></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><input tabindex="1" name="txtproperty_id" id="txtproperty_id" type="text" class="form" size="35" maxlength="255" /></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top"><input tabindex="5" name="txtaddress" id="txtaddress" type="text" class="form" size="35" maxlength="255"/></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><span class="formtxt">Company Name:</span></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top"><span class="formtxt">Address2: </span></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><input tabindex="2" name="txtcompanyname" id="txtcompanyname" type="text" class="form" size="35" maxlength="255" /></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top"><input tabindex="6" name="txtaddress2" type="text" class="form" id="txtaddress2" size="35" maxlength="255" iid="txtspousename" ize="35" /></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><span class="formtxt">Web ID:</span></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top"><span class="formtxt">City:</span></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><input tabindex="3" name="txtwebid" type="text" class="form" id="txtwebid" size="35" maxlength="255" iid="txtspousename" ize="35" /></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">
+				<input tabindex="7" name="txtcity" id="txtcity" type="text" class="form" size="35" maxlength="255"/>
+				<div id="listCities" style="background-color: white; padding: 3px;display: none; border: 1px solid silver; position: absolute;width: 222px; min-height: 10px;">Select city: <br /><br /></div>
+			</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><span class="formtxt">Other Property ID:</span></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" class="formtxt">State:</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><input tabindex="4" name="txtotherpropertyid" type="text" class="form" id="txtotherpropertyid" size="35" maxlength="255" iid="txtspousename" ize="35" /></td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" tabindex="8">
+            	<select class="dropdown" id="txtstate" name="txtstate">
+					<?php	                                       				
+					$getStates = "SELECT id, name FROM state WHERE active = 1 GROUP BY name ORDER BY name ASC";
+					if($resStates = $db->query($getStates)){
+						while($rowStates = $db->fetchArray($resStates)){
+							?>
+							<option <?php if($rowStates['id'] == '1') echo "selected='selected'" ?> value="<?php echo $rowStates['id'] ?>">
+								<?php echo $rowStates['name'] ?>
+							</option>
+							<?php	                                       				
+						}
+					}
+					?>
+				</select>
+			<!--  <? // =fillCombo('txtstate','state','id','name','WHERE active=1','','dropdown','','0','txtstate')?> -->
+				<span id="infoZip" class="formtxt" style="margin-left:10px;"></span>
+			</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" class="formtxt">Zipcode:</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">
+				<input tabindex="9" name="txtzipcode" id="txtzipcode" type="text" class="form" size="10" maxlength="5" />
+				<input tabindex="9" type="button" value="Find city and state" name="getCity" id="getCity" />
+			</td>
+          </tr>
+		  <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" class="formtxt">County: <?php if($_SESSION['userid'] == 15){ echo "(autocomplete after 4th character)"; } ?></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" tabindex="10">
+				<?php 
+				//if($_SESSION['userid'] == 15){
+					?>
+					<input type="text" name="txtcounty" id="txtcounty" class="form" size="35" />
+					<?php
+				//}else{ 
+					//echo fillCombo('txtcounty','county','id','name','WHERE active=1','','dropdown','');
+				//}
+				?>
+			</td>
+          </tr>
+		   <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" class="formtxt">Country:</td>
+          </tr>
+          <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top" tabindex="10">
+				<select class="dropdown" id="txtcountry" name="txtcountry" style="width: 215px;">
+					<?php	                                       				
+					$getCountries = "SELECT id, printable_name FROM country ORDER BY printable_name ASC";
+					if($resCountries = $db->query($getCountries)){
+						while($rowCountries = $db->fetchArray($resCountries)){
+							?>
+							<option <?php if($rowCountries['id'] == '223') echo "selected='selected'" ?> value="<?php echo $rowCountries['id'] ?>">
+								<?php echo $rowCountries['printable_name'] ?>
+							</option>
+							<?php	                                       				
+						}
+					}
+					?>
+				</select>
+			</td>
+          </tr>
+		  
+          <tr>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+            <td align="left" valign="top">&nbsp;</td>
+          </tr>
+          <tr align="left">
+            <td colspan="3" valign="middle" class="formtxt">&nbsp;</td>
+          </tr>
+          <tr align="left" style="display:none">
+            <td colspan="3" valign="middle" class="formtxt"><label>
+              <input name="txtaudit1" type="checkbox" id="txtaudit1" value="1" />
+              Audit1
+              <input name="txtaudit2" type="checkbox" id="txtaudit2" value="1" />
+              Audit2
+              <input name="txtaudit3" type="checkbox" id="txtaudit3" value="1" />
+              Audit3
+              <input name="txttaxaudit" type="checkbox" id="txttaxaudit" value="1" />
+              Tax Audit</label></td>
+            </tr>
+          <tr align="left">
+            <td valign="middle"><input name="Button4" type="button" class="h" value="Add Contact Information" onclick="addContactInfo();" style="height:25px"/></td>
+            <td valign="top">&nbsp;</td>
+            <td valign="middle">&nbsp;</td>
+          </tr>
+		  <tr>
+            <td colspan="3" align="left" valign="top"><div id="addcontactinfo">
+              <table width="100%" border="0" cellspacing="0" cellpadding="1">
+                <tr>
+                  <td width="29%" align="left" valign="top"><span class="formtxt">First Name:</span></td>
+                  <td width="23%" align="left" valign="top">&nbsp;</td>
+                  <td width="48%" align="left" valign="top"><span class="formtxt">Last Name:</span></td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><input tabindex="11" name="txtfname[]" id="txtfname[]" type="text" class="form" size="35" maxlength="255" /></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top"><input tabindex="15" name="txtlname[]" id="txtlname[]" type="text" class="form" size="35" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><span class="formtxt">Title:</span></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top"><span class="formtxt">Spouse Name: </span></td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><input tabindex="12" name="txttitle[]" id="txttitle[]" type="text" class="form" value="" size="35" maxlength="255"/></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top"><input tabindex="16" name="txtspousename[]" type="text" class="form" id="txtspousename[]" ize="35" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><span class="formtxt">Email:</span></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top"><span class="formtxt">Website:</span></td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><input tabindex="13" name="txtemail[]" type="text" class="form" id="txtemail[]" size="35" maxlength="255" /></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top"><input tabindex="17" name="txtwebsite[]" id="txtwebsite[]" type="text" class="form" size="35" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><span class="formtxt">Relationship:</span></td>
+                  <td align="left" valign="top" class="formtxt">&nbsp;</td>
+                  <td align="left" valign="top">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top" tabindex="14"><?=listbox_array($relationshipArray,'txtrelation[]')?></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="left" valign="top"><span class="formtxt">Note:</span></td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td colspan="3" align="left" valign="top"><textarea tabindex="18" name="txtcontactnotes[]" id="txtcontactnotes[]" cols="40" rows="4" class="txtarea"></textarea>                  </td>
+                  </tr>
+                <tr>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top">&nbsp;</td>
+                  <td align="left" valign="top">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td colspan="3" align="left" valign="top"><div id="phonetype">
+                      <table width="99%" border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td width="29%" align="left" valign="top" class="formtxt">Phone: (format: 1234567890)</td>
+                          <td width="29%" align="left" valign="top" class="formtxt">Ext:</td>
+                          <td width="27%" align="left" valign="top" class="formtxt">Type:</td>
+                          <td width="18%" align="center" valign="top" class="formtxt">Priority:</td>
+                        </tr>
+                        <tr>
+                          <td align="left" valign="top"><input tabindex="19" name="txtphone0[]" type="text" class="form phone" id="txtphone0[]" size="25" maxlength="50" /></td>
+                          <td align="left" valign="top"><input tabindex="20" name="txtext0[]" type="text" class="form" id="txtext0[]" size="25" maxlength="10" /></td>
+                          <td align="left" valign="top" tabindex="21"><?=fillCombo('txttype0[]','types','id','name','WHERE active=1 AND id < 15','','dropdown','')?></td>
+                          <td align="right" valign="top" tabindex="22"><?=listbox_array($priorityArray,'txtpriority0[]')?>                          </td>
+                        </tr>
+                      </table>
+                  </div>
+                      <input name="hdnaddphonetype0" id="hdnaddphonetype0" type="hidden" value="1" />
+                      <div id="phonetype01" style="display:none"></div></td>
+                </tr>
+                <tr>
+                  <td height="35" align="left" valign="top">&nbsp;</td>
+                  <td height="35" align="left" valign="top">&nbsp;</td>
+                  <td height="35" align="right" valign="middle"><input name="addcontactinfo" id="addcontactinfo" type="hidden" value="1" /><input tabindex="23" name="Button5" type="button" class="button" value="Add More" onclick="addPhonetypes(0);"/></td>
+                </tr>
+                <tr>
+                  <td colspan="3" align="left" valign="top">
+					<table width="60%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="68%" align="left" valign="top"><div id="addmbtn0"><input tabindex="24" name="Button52" type="button" class="button" value="Add More Contact" onclick="addmorecontact();"/></div></td>
+                        <td width="7%" align="left" valign="top">&nbsp;</td>
+						<td width="7%" align="left" valign="top">&nbsp;</td>
+						<td width="18%" align="left" valign="top">
+							<span class="dataField">
+								<span class="dataLabel" style="display: inline;">
+									<input name="hdnaddcontact" type="hidden" value="1" />
+								</span>
+							</span>
+						</td>
+                      </tr>
+					</table><br />
+				  </td>
+                </tr>
+              </table>
+            </div>
+			<input name="hdnmorecontact" id="hdnmorecontact" type="hidden" value="1" />
+            <div id="morecontact1" style="display:none"></div>
+			</td>
+		  </tr>
+          <!--<tr align="left">
+            <td colspan="3" valign="middle"><div id="addContact" style="display: none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <td width="29%" align="left">
+                  <div id="showcontacts" style="float:left">
+                    <input name="txtcontacts[]" type="text" class="formtxt" onfocus="this.value='';" onkeyup="ajax_showOptions(this,'name',event);" value="Type Contact Name Here To Select" size="35"/>
+                  </div>                </td>
+                <td width="1%" align="left">&nbsp;</td>
+                <td width="3%" align="left"><span class="bodttxt">OR</span></td>
+                <td width="67%" align="left"><input name="selectcontacts" type="button" value="Click to Select Contacts" onclick="window.open('selectcontact.php','contactwin','height=580,width=800,scrollbars=1');" class="h" style="height:25px"/></td>
+              </tr>
+            </table>
+            </div></td>
+          </tr>-->
+          <tr align="left">
+            <td height="35" valign="middle"><input tabindex="25" name="Button" type="button" class="h" value="Add Location Information" onclick="addLocation();" style="height:25px"/></td>
+            <td height="35" valign="top">&nbsp;</td>
+            <td height="35" valign="middle">&nbsp;</td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left" valign="top"><div id="addLocation" style="display:none">
+              <table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+                <tr>
+                  <td align="right">License:</td>
+                  <td><input tabindex="26" name="txtlicense" type="checkbox" class="formtxt" id="txtlicense" value="1" /></td>
+                  <td align="right">Sq Feet: </td>
+                  <td><input tabindex="30" name="txtsquarefeet" type="text" class="form" id="txtsquarefeet" maxlength="255" /></td>
+                  <td align="right">Areas off limit: </td>
+                  <td><input tabindex="34" name="txtlimitareas" type="text" class="form" id="txtlimitareas" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="right">Neighbors:</td>
+                  <td><input tabindex="27" name="txtneighbors" type="text" class="form" id="txtneighbors" maxlength="255" /></td>
+                  <td align="right">Animals:</td>
+                  <td><input tabindex="31" name="txtanimals" type="text" class="form" id="txtanimals" maxlength="255" /></td>
+                  <td align="right">Date Built: </td>
+                  <td><input tabindex="35" name="txtdatebuilt" type="text" class="form" id="txtdatebuilt" onclick="javascript:cal.popup();" /></td>
+                </tr>
+                <tr>
+                  <td align="right">Previous Filming:</td>
+                  <td><input tabindex="28" name="txtpreviousfilming" type="text" class="form" id="txtpreviousfilming" maxlength="255" /></td>
+                  <td align="right">Parking:</td>
+                  <td><input tabindex="32" name="txtparking" type="text" class="form" id="txtparking" maxlength="255" /></td>
+                  <td align="right">Bedroom Count: </td>
+                  <td><input tabindex="36" name="txtbedroom" type="text" class="form" id="txtbedroom" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="right">Restroom Count: </td>
+                  <td><input tabindex="29" name="txtrestroom" type="text" class="form" id="txtrestroom" maxlength="255" /></td>
+                  <td align="right">Referal Form: </td>
+                  <td><textarea tabindex="33" name="txtreferalform" cols="20" rows="2" class="txtarea" id="txtreferalform"></textarea></td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="right">Features:</td>
+                  <td colspan="5"><label>
+                    <input tabindex="37" name="txtadultfriendly" type="checkbox" id="txtadultfriendly" value="1" />
+                    Adult Friendly
+                    <input tabindex="37" name="txtpool" type="checkbox" id="txtpool" value="1" />
+                    Pool
+                    <input tabindex="37" name="txttennisecourt" type="checkbox" id="txttennisecourt" value="1" />
+                    Tennis Court
+                    <input tabindex="37" name="txtcityview" type="checkbox" id="txtcityview" value="1" />
+                    City View
+                    <input tabindex="38" name="txtnicebackyard" type="checkbox" id="txtnicebackyard" value="1" />
+                    Nice Backyard
+                    <input tabindex="39" name="txthomeassociation" type="checkbox" id="txthomeassociation" value="1" />
+                    Home Association</label></td>
+                  </tr>
+                <tr>
+                  <td align="right">Architect:</td>
+                  <td><input tabindex="40" name="txtarchitect" type="text" class="form" id="txtarchitect" maxlength="255" /></td>
+                  <td align="right">House Name: </td>
+                  <td><input tabindex="41" name="txthousename" type="text" class="form" id="txthousename" maxlength="255" /></td>
+                  <td colspan="2">&nbsp;</td>
+                  </tr>
+                <tr>
+                  <td align="right">&nbsp;</td>
+                  <td colspan="5"><label>
+                    <input tabindex="42" name="txtnewpropertyowner" type="checkbox" id="txtnewpropertyowner" value="1" />
+                    Find New Property Owner
+                    <input tabindex="43" name="txtfilmingorevents" type="checkbox" id="txtfilmingorevents" value="1" />
+                    No Longer For Filming or Events</label></td>
+                  </tr>
+                <tr>
+                  <td align="right">Notes:</td>
+                  <td colspan="5"><textarea tabindex="44" name="txtnotes" cols="45" rows="4" class="txtarea" id="txtnotes"></textarea></td>
+                  </tr>
+                <tr>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+              </table>
+            </div></td>
+            </tr>
+          <tr>
+            <td height="35" align="left" valign="middle"><input tabindex="45" name="Button2" type="button" class="h" value="Add Budget Information" onclick="addBudget();" style="height:25px"/></td>
+            <td height="35" align="left" valign="top">&nbsp;</td>
+            <td height="35" align="left" valign="top">&nbsp;</td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left" valign="top"><div id="addBudget" style="display:none">
+              <table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+                <!--<tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%"><label>
+                        <input name="txthighbudget" type="checkbox" id="txthighbudget" value="1" />
+                        High Budget
+                        <input name="txtmediumbudget" type="checkbox" id="txtmediumbudget" value="1" />
+                        Mid Budget
+                        <input name="txtlowbudget" type="checkbox" id="txtlowbudget" value="1" />
+                        Low Budget</label></td>
+                    </tr>
+                  </table></td>
+                  </tr>-->
+                <tr>
+                  <td width="7%" align="right">Budget Notes :</td>
+                  <td colspan="5"><textarea tabindex="46" name="txtbudgetnotes" cols="45" rows="4" class="txtarea" id="txtbudgetnotes"></textarea></td>
+                  </tr>
+                <tr>
+                  <td colspan="6"><strong>Film Information </strong></td>
+                  </tr>
+                <tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%"><label>
+                        <input tabindex="47" name="txtfilmfriendly" type="checkbox" id="txtfilmfriendly" value="1" />
+                        Film Friendly
+                        <input tabindex="48" name="txtinteriorfilming" type="checkbox" id="txtinteriorfilming" value="1" />
+                        Interior Filming
+                        <input tabindex="49" name="txtexteriorfilming" type="checkbox" id="txtexteriorfilming" value="1" />
+                        Exterior Filming </label></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+
+                <tr>
+                  <td align="right">Avg. Film Budget :</td>
+                  <td width="22%"><input tabindex="50" name="txtfilmbudget" type="text" class="form" id="txtfilmbudget" maxlength="255" /></td>
+                  <td width="14%" align="right">Max Head Count:</td>
+                  <td width="22%"><input tabindex="51" name="txtfilmmaxheat" type="text" class="form" id="txtfilmmaxheat" maxlength="255" /></td>
+                  <td width="11%" align="right">Film Parking: </td>
+                  <td width="24%"><input tabindex="52" name="txtfilmparking" type="text" class="form" id="txtfilmparking" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="right">Film Notes:</td>
+                  <td colspan="5"><textarea tabindex="53" name="txtfilmnotes" cols="45" rows="6" class="txtarea" id="txtfilmnotes"></textarea></td>
+                  </tr>
+                <tr>
+                  <td colspan="6"><strong>Events Information </strong></td>
+                </tr>
+                <tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%"><label>
+                        <input tabindex="54" name="txteventfriendly" type="checkbox" id="txteventfriendly" value="1" />
+                        Event Friendly
+                        <input tabindex="55" name="txtinteriorevent" type="checkbox" id="txtinteriorevent" value="1" />
+                        Interior Events
+                        <input tabindex="56" name="txtexteriorevent" type="checkbox" id="txtexteriorevent" value="1" />
+                        Exterior Events </label></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+                <tr>
+                  <td align="right">Avg. Event Budget :</td>
+                  <td><input tabindex="57" name="txteventbudget" type="text" class="form" id="txteventbudget" maxlength="255" /></td>
+                  <td align="right">Max Head Count:</td>
+                  <td><input tabindex="58" name="txteventmaxheat" type="text" class="form" id="txteventmaxheat" maxlength="255" /></td>
+                  <td align="right">Event Parking: </td>
+                  <td><input tabindex="59" name="txteventparking" type="text" class="form" id="txteventparking" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="right">Event Notes:</td>
+                  <td colspan="5"><textarea tabindex="60" name="txteventnotes" cols="45" rows="6" class="txtarea" id="txteventnotes"></textarea></td>
+                  </tr>
+                <tr>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+              </table>
+            </div></td>
+            </tr>
+          <tr>
+            <td height="35" align="left" valign="middle"><input tabindex="61" name="Button3" type="button" class="h" value="Add Tax Information" onclick="addTax();" style="height:25px"/></td>
+            <td height="35" align="left" valign="top">&nbsp;</td>
+            <td height="35" align="left" valign="top">&nbsp;</td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left" valign="top"><div id="addTax" style="display:none">
+              <table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+                <tr>
+                  <td align="right">Tax Company:</td>
+                  <td><input tabindex="62" name="txttaxcompany" type="text" class="form" id="txttaxcompany" maxlength="255" /></td>
+                  <td align="right">Taxt First Name: </td>
+                  <td><input tabindex="67" name="txttaxfirstname" type="text" class="form" id="txttaxfirstname" maxlength="255" /></td>
+                  <td align="right">Tax Last Name: </td>
+                  <td><input tabindex="71" name="txttaxlastname" type="text" class="form" id="txttaxlastname" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="right">Tax Address:</td>
+                  <td><input tabindex="63" name="txttaxaddress" type="text" class="form" id="txttaxaddress" maxlength="255" /></td>
+                  <td align="right">Tax Address2:</td>
+                  <td><input tabindex="68" name="txttaxaddress2" type="text" class="form" id="txttaxaddress2" maxlength="255" /></td>
+                  <td align="right">Tax City: </td>
+                  <td><input tabindex="72" name="txttaxcity" type="text" class="form" id="txttaxcity" maxlength="255"/></td>
+                </tr>
+                <tr>
+                  <td align="right">Tax State:</td>
+                  <td><input tabindex="64" name="txttaxstate" type="text" class="form" id="txttaxstate" maxlength="255" /></td>
+                  <td align="right">Tax Zipcode:</td>
+                  <td><input tabindex="69" name="txttaxzipcode" type="text" class="form" id="txttaxzipcode" maxlength="255" /></td>
+                  <td align="right">&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="right">Tax Amount $:</td>
+                  <td colspan="5">
+                    <input tabindex="65" name="txttaxamount" type="text" class="bigValue form" id="txttaxamount" maxlength="255"/>
+					</td>
+                </tr>
+                <tr>
+                  <td align="right">Tax Notes1:</td>
+                  <td><input tabindex="66" name="txttaxnotes1" type="text" class="form" id="txttaxnotes1" maxlength="255" /></td>
+                  <td align="right">Tax Notes2:  </td>
+                  <td colspan="3"><input tabindex="70" name="txttaxnotes2" type="text" class="form" id="txttaxnotes2" maxlength="255" /></td>
+                </tr>
+                <tr>
+                  <td align="right">&nbsp;</td>
+                  <td colspan="5"><label>
+                    <input tabindex="73" name="txtmailtaxes" type="checkbox" id="txtmailtaxes" value="1" />
+                    Do Not Mail Taxes
+                    <input tabindex="74" name="txtquestionable" type="checkbox" id="txtquestionable" value="1" />
+                    Questionable</label></td>
+                </tr>
+                <tr>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                  <td>&nbsp;</td>
+                </tr>
+              </table>
+            </div></td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left" valign="top">&nbsp;</td>
+          </tr>
+		  
+		  <tr>
+            <td colspan="3" align="left" valign="top">&nbsp;</td>
+          </tr>
+          <tr>
+            <td colspan="3" align="left" valign="top"><table width="60%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td width="7%" align="left" valign="top">&nbsp;</td>
+                  <td width="36%" align="center" valign="top"><span class="dataField"><span class="dataLabel" style="display: inline;">
+                    <input name="hdnproperty" type="hidden" id="hdnproperty" value="1" /><input tabindex="75" name="addProperty" type="submit" class="button" id="addProperty" value="Save Property" />
+                  </span></span></td>
+                  <td width="49%" align="left" valign="top"><input tabindex="76" name="Button" type="button" class="button" value="Cancel" onclick="history.back();"/></td>
+                  <td width="8%" align="left" valign="top">&nbsp;</td>
+                </tr>
+            </table></td>
+          </tr>
+        </table>
+            </form>
+      </td>
+    </tr>
+  </tbody>
+</table></td>
+                </tr>
+            </table></td>
+          </tr>
+        </tbody>
+      </table></td>
+    </tr>
+  </tbody>
+</table>
+<script>
+var cal = new calendar(document.forms['form1'].elements['txtdatebuilt']);
+cal.year_scroll = false;
+cal.time_comp = false;
+</script>
+<? include("footer.php");?>
+</body>
+</html>
+
+<link rel="stylesheet" href="css/base/jquery.ui.all.css" type="text/css">
+<script type="text/javascript" src="js/jquery-ui-1.8.custom.js"></script>
+<script type="text/javascript" src="js/jquery.ui.autocomplete.js"></script>
+<script type="text/javascript">
+	jQuery(document).ready(function() {
+		jQuery("#getCity").click(function () { 
+			if(jQuery("#txtzipcode").val() != ""){
+				jQuery.post("ajaxV.php", { 
+						zip: jQuery("#txtzipcode").val(),
+						task: "getCity"
+					},function(data){
+						if(data != ""){
+							jQuery("#infoZip").html("")
+							arrData = data.split("|");
+							jQuery("#listCities").html("Select city: <br />");
+							if(arrData.length == 2){
+								jQuery("#txtcity").val(arrData[0]);
+							}else{
+								jQuery("#listCities").show();
+								for(var i = 0; i < arrData.length - 1; i++){
+									jQuery("#listCities").append("<div class='clickCity formtxt' style='cursor: pointer'>"+arrData[i]+"</div>");
+								}
+							}
+							
+							jQuery.post("ajaxV.php", { 
+									zip: jQuery("#txtzipcode").val(),
+									task: "getState"
+								},function(data){
+									jQuery("#txtstate :selected").text(data);
+							});
+						}else{
+							jQuery("#infoZip").html("Invalid zipcode.")
+						}
+				});
+			}
+		})
+		
+		jQuery(".clickCity").live("click",function () { 
+			jQuery("#txtcity").val(jQuery(this).html());
+			jQuery("#listCities").hide();
+		})
+		
+		jQuery("#txtcity").autocomplete({
+			source: "autocompleteCity.php",
+			minLength: 3
+		});
+		
+		jQuery("#txtParent").autocomplete({
+			source: "autocompletePropLoc.php",
+			minLength: 3
+		});
+		
+		var t = "";
+		jQuery('#txtproperty_id').blur(function() {
+			t = "";
+			/*
+			jQuery.post("ajaxV.php", { 
+					propLoc: jQuery("#txtproperty_id").val(),
+					task: "checkIfPropExist"
+				},function(data){
+					
+			});
+			*/
+			
+			jQuery.ajax({
+				type: "POST",
+				url: 'ajaxV.php',
+				async: false,
+				data: "task=checkIfPropExist&propLoc=" + jQuery("#txtproperty_id").val(),
+				success: function(data) {
+					t = data;
+				}
+			});
+			if(t == "exist"){
+				alert("Property with same ID already exist.");
+				jQuery('#txtproperty_id').css("border", "1px solid red");
+				jQuery('#addProperty').hide();
+				return false;
+			}
+			
+			if(t == "free"){
+				jQuery('#txtproperty_id').css("border", "1px solid #94C1E8");
+				jQuery('#addProperty').show();
+				return true;
+			}
+			
+			if((t != "free") && (t != "exist")){
+				alert("Error while check.");
+				return false;
+			}
+		});
+		
+		jQuery('#txtzipcode').keypress(validateNumber);
+		//jQuery('.validPhone').live("keypress", validateNumber);
+		jQuery('.phone').live("keypress", function(event){
+			var key = window.event ? event.keyCode : event.which;
+			if(key != 8){
+				var number = jQuery(this).val();
+				number = jQuery.trim(number);
+				var count = number.length;
+				var first = number.substring(0, 1);
+				if(first != "+"){ //usa format
+					if(count < 14){
+						if(count == 3){
+							number = "(" + number + ") ";
+						}
+						if(count == 9){
+							number = number + "-";
+						}
+						jQuery(this).val(number);
+					}else{
+						jQuery(this).val(number.slice(0, -1));
+					}
+				}else{ //international
+				}
+			}
+		});
+		jQuery('.phone').live("blur", function(event){
+			var number = jQuery(this).val();
+			number = jQuery.trim(number);
+			var count = number.length;
+			var first = number.substring(0, 1);
+			if(first != "+"){ //usa format
+				if(count == 10){
+					first = number.substring(0, 3);
+					second = number.substring(3, 6);
+					third = number.substring(6, 10);
+					number = "(" + first + ") " + second + "-" + third;
+					jQuery(this).val(number);
+				}
+			}
+		});
+		jQuery("#txtcounty").autocomplete({
+			source: "autocompleteCounty.php",
+			minLength: 4
+		});
+		
+		jQuery('#txtParent').blur(function() {
+			var parent = jQuery(this).val();
+			jQuery.ajax({
+				type: "POST",
+				url: 'ajaxV.php',
+				async: false,
+				dataType: "json",
+				data: "task=populateFromParent&parent=" + parent,
+				success: function(data) {
+					var state = data[0].state;
+					var county = data[0].county;
+					if(data[0].address == "0") data[0].address = "";
+					if(data[0].company == "0") data[0].company = "";
+					if(data[0].address2 == "0") data[0].address2 = "";
+					if(data[0].city == "0") data[0].city = "";
+					if(data[0].webid == "0") data[0].webid = "";
+					if(data[0].otherpropertyid == "0") data[0].otherpropertyid = "";
+					if(data[0].zipcode == "0") data[0].zipcode = "";
+					
+					jQuery("#txtaddress").val(data[0].address);
+					jQuery("#txtcompanyname").val(data[0].company);
+					jQuery("#txtaddress2").val(data[0].address2);
+					jQuery("#txtwebid").val(data[0].webid);
+					jQuery("#txtcity").val(data[0].city);
+					jQuery("#otherpropertyid").val(data[0].otherpropertyid);
+					jQuery("#txtzipcode").val(data[0].zipcode);
+					
+					jQuery.ajax({
+						type: "POST",
+						url: 'ajaxV.php',
+						data: "task=getCoutryById&id=" + data[0].country,
+						success: function(data) {
+							jQuery("#txtcountry :selected").text(data);
+							jQuery.ajax({
+								type: "POST",
+								url: 'ajaxV.php',
+								data: "task=getStateById&id=" + state,
+								success: function(data) {
+									jQuery("#txtstate :selected").text(data);
+								}
+							});
+						}
+					});
+				}
+			});
+		});
+	})
+</script>

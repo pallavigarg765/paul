@@ -1,0 +1,2190 @@
+<? 
+	include('include/security.php');
+	include('include/dbcon.php');
+	include('include/config.php');
+	include('include/functions.php');
+	$db = new DBConn();
+	
+	$allowUsers = array();
+	array_push($allowUsers, "tester", "admin", "Ron", "Jolanta310", "Fatima");
+	
+	mysql_select_db("planitlo_crm");
+	$sqlCheckUser = "SELECT username FROM user WHERE id = '".$_SESSION['userid']."'";
+	if($resCheckUser = mysql_query($sqlCheckUser)){
+		$rowCheckUser = mysql_fetch_array($resCheckUser);
+		$checkUsername = $rowCheckUser['username'];
+	}
+	
+	if(isset($_POST['saveToLoc'])){
+		$link = mysql_connect('localhost', 'root', 'Securel0gi!12aa');
+		if (!$link){
+			die('Could not connect: ' . mysql_error());
+		}
+		mysql_select_db("planitlo_locations");
+		if($_POST['wsAd'] == "") $_POST['wsAd'] = "0";
+		$sql = "";
+		if($_POST['exist'] != ''){
+			$sql = "UPDATE prop_info SET 
+				prop_name = '".mysql_real_escape_string($_POST['wsPropName'])."', 
+				prop_domain_loc = '".mysql_real_escape_string($_POST['wsPropDomLoc'])."', 
+				tn_domain_loc = '".mysql_real_escape_string($_POST['wsThumbsDomLoc'])."', 
+				thumb01 = '".mysql_real_escape_string($_POST['wsThumb1'])."', 
+				thumb02 = '".mysql_real_escape_string($_POST['wsThumb2'])."', 
+				thumb03 = '".mysql_real_escape_string($_POST['wsThumb3'])."', 
+				prop_name2 = '".mysql_real_escape_string($_POST['wsPropName2'])."', 
+				prop_name3 = '".mysql_real_escape_string($_POST['wsPropName3'])."', 
+				ad = '".mysql_real_escape_string($_POST['wsAd'])."',
+				modified_date = '".date('Y-m-d')."'
+				WHERE prop_loc = '".mysql_real_escape_string($_POST['exist'])."'
+				";
+		}else{
+			$sql = "INSERT INTO prop_info (prop_name, prop_domain_loc, prop_loc, tn_domain_loc, thumb01, thumb02, thumb03, prop_name2, prop_name3, ad, creation_date, modified_date) VALUES ('".mysql_real_escape_string($_POST['wsPropName'])."', '".mysql_real_escape_string($_POST['wsPropDomLoc'])."', '".mysql_real_escape_string($_POST['wsPropLoc'])."', '".mysql_real_escape_string($_POST['wsThumbsDomLoc'])."', '".mysql_real_escape_string($_POST['wsThumb1'])."', '".mysql_real_escape_string($_POST['wsThumb2'])."', '".mysql_real_escape_string($_POST['wsThumb3'])."', '".mysql_real_escape_string($_POST['wsPropName2'])."', '".mysql_real_escape_string($_POST['wsPropName3'])."', '".mysql_real_escape_string($_POST['wsAd'])."', '".date('Y-m-d')."', '".date('Y-m-d')."');";
+		}
+		
+		if($res = mysql_query($sql)){
+			
+		}else{
+			echo mysql_error();
+		}
+		
+		//echo $sql;
+		
+		mysql_select_db("planitlo_crm");
+		//mysql_close($link);
+		header("location: https://planitlocations.com/crm/propertydetail.php?id=".$_GET['id']);
+	}
+	
+	/* Add Contacts */
+	if(isset($_REQUEST['hdnaddcontact']) && $_REQUEST['hdnaddcontact'] == '1'){
+		$create_date = strtotime(date("Y-m-d"));
+		
+		if($_REQUEST['txtfname'] == '') { $txtfname = '0'; }
+		if($_REQUEST['txtlname'] == '') { $txtlname = '0'; }
+		if($_REQUEST['txttitle'] == '') { $txttitle = '0'; }
+		if($_REQUEST['txtspousename'] == '') { $txtspousename = '0'; }
+		if($_REQUEST['txtemail'] == '') { $txtemail = '0'; }
+		if($_REQUEST['txtwebsite'] == '') { $txtwebsite = '0'; }
+		if($_REQUEST['txtrelation'] == '') { $txtrelation = '0'; }
+		if($_REQUEST['txtnotes'] == '') { $txtnotes = '0'; }
+		
+		$sql = "INSERT INTO contact (userid,firstname,lastname,title,spousename,email,website,relationship,notes,create_date) VALUES(
+		'".$_SESSION['userid']."','".addslashes($txtfname)."','".addslashes($txtlname)."','".addslashes($txttitle)."','".addslashes($txtspousename)."','".addslashes($txtemail)."','".addslashes($txtwebsite)."','".addslashes($txtrelation)."','".addslashes($txtnotes)."','".$create_date."')";
+		$db->query($sql) or die($sql);		
+		$contactid = mysql_insert_id();
+		$sql = "INSERT INTO contact_to_property(contact_id,property_id) VALUES(".$contactid.",".$id.")";
+		$db->query($sql) or die($sql);
+		$phone = $_REQUEST['txtphone'];
+		foreach($phone as $key => $value){
+			if($_REQUEST['txtphone'][$key] == '') { $txtphone[$key] = '0'; }
+			if($_REQUEST['txtext'][$key] == '') { $txtext[$key] = '0'; }
+			if($_REQUEST['txttype'][$key] == '') { $txttype[$key] = '0'; }
+			if($_REQUEST['txtpriority'][$key] == '') { $txtpriority[$key] = '0'; }
+			if($value != ''){
+				$sql = "INSERT INTO phone (contact_id,number,ext,type,priority) VALUES(
+				'".$contactid."','".addslashes($txtphone[$key])."','".addslashes($txtext[$key])."','".addslashes($txttype[$key])."','".addslashes($txtpriority[$key])."')";
+				$db->query($sql);
+			}		
+		}
+		
+	}
+	
+	/* Update Contacts */
+	if(isset($_REQUEST['hdnpropertycontact']) && $_REQUEST['hdnpropertycontact'] == '1'){
+		$create_date = strtotime(date("Y-m-d"));
+		$cid = (int)$_REQUEST['cid'];
+		$sql = "UPDATE contact SET userid=".$_SESSION['userid'].",firstname='".addslashes($_REQUEST['txtfname'])."',lastname='".addslashes($_REQUEST['txtlname'])."',title='".addslashes($_REQUEST['txttitle'])."',spousename='".addslashes($_REQUEST['txtspousename'])."',email='".addslashes($_REQUEST['txtemail'])."',website='".addslashes($_REQUEST['txtwebsite'])."',relationship='".addslashes($_REQUEST['txtrelation'])."',notes='".addslashes($_REQUEST['txtnotes'])."',modified_date='".$create_date."' WHERE id=".$cid;
+		$db->query($sql) or die($sql);		
+		$contactid = $cid;
+		$phone = $_REQUEST['phoneid'];
+		if(count($phone) > 0){
+			foreach($phone as $key => $value){
+				if($_REQUEST['txtphone'][$key] == '') { $txtphone[$key] = '0'; }
+				if($_REQUEST['txtext'][$key] == '') { $txtext[$key] = '0'; }
+				if($_REQUEST['txttype'][$key] == '') { $txttype[$key] = '0'; }
+				if($_REQUEST['txtpriority'][$key] == '') { $txtpriority[$key] = '0'; }
+				
+				if($value != ''){
+					$sql = "SELECT * from phone WHERE id=".(int)$value;
+					$res = $db->query($sql);
+					$nrows = $db->getNumRows($res);
+					if($nrows >= 1){
+						$sql = "UPDATE phone SET number='".addslashes($txtphone[$key])."',ext='".addslashes($txtext[$key])."',type='".addslashes($txttype[$key])."',priority='".addslashes($txtpriority[$key])."' WHERE id=".(int)$value;
+						$db->query($sql);
+					}else{
+						$sql = "INSERT INTO phone (contact_id,number,ext,type,priority) VALUES(
+					'".$contactid."','".addslashes($txtphone[$key])."','".addslashes($txtext[$key])."','".addslashes($txttype[$key])."','".addslashes($txtpriority[$key])."')";
+						$db->query($sql);
+					}
+				}		
+			}
+		}
+	}
+	/* Delete Property */
+	if(isset($_REQUEST['del']) && $_REQUEST['del'] == 1 && isset($_REQUEST['id']) && intval($_REQUEST['id'])){
+		$sql = "DELETE FROM contact_to_property WHERE property_id=".$_REQUEST['id'];
+		$db->query($sql);
+		$sql = "DELETE FROM location WHERE property_id=".$_REQUEST['id'];
+		$db->query($sql);
+		$sql = "DELETE FROM budget WHERE property_id=".$_REQUEST['id'];
+		$db->query($sql);
+		$sql = "DELETE FROM tax WHERE property_id=".$_REQUEST['id'];
+		$db->query($sql);
+		$sql = "DELETE FROM property WHERE id=".$_REQUEST['id'];
+		$db->query($sql);
+	}
+	$id = (int)$_REQUEST['id'];
+	/*$next = (int)$_REQUEST['n'];
+	$setid = 0;
+	$MaxID = $db->getField('property','max(id)','1=1');
+	$MinID = $db->getField('property','min(id)','1=1');
+	if($next !='' && $next != 0){
+		if($next > $MaxID)
+			$setid = $MinID;
+		else
+			$setid = $next;
+	}elseif(isset($_REQUEST['p']) && intval($_REQUEST['p'])){
+		$previous = $_REQUEST['p'];
+		if($previous == 0)
+			$setid = $MaxID;
+		else
+			$setid = $previous;
+	}*/
+	// Select Property and related information
+	$sql = "SELECT property.*,state.name as statename, county.name as countyname FROM property  
+			left join state on property.state=state.id
+			left join county on property.county=county.id ";
+	if($id != 0)
+		$sql .= " WHERE property.id=".$id;
+	/*if($setid != 0)
+		$sql .= " WHERE property.id=".$setid;
+	$sql .= " ORDER BY property.id asc LIMIT 0,1 ";
+	$presult = $db->query($sql) or die($sql);
+	$prow = $db->fetchArray($presult);
+	$nexturl = 'property.php?n='.($prow['id']+1);
+	$previousurl = 'property.php?p='.($prow['id']-1);*/
+	$current_page = 'property.php';
+	$go = 1;
+	$perpage = 1;
+	if(isset($_REQUEST['go']) && $_REQUEST['go'] != '')
+		$go = $_REQUEST['go'];
+	if($go > 1){
+		$chkgo = "?go=".$go;
+	}
+	$offset = (($go * $perpage) - $perpage);
+	$result_total = $db->query($sql);
+	$totalrecs = $db->getNumRows($result_total);
+	$sql .= " limit $offset,$perpage";
+	$result = $db->query($sql) or die(mysql_error()." ".$sql);
+	$count=$db->getNumRows($result);
+	$total_pages = ceil($totalrecs / $perpage);
+	$start_var = $offset + 1;
+	$end_var_records = $count + (($go-1)*$perpage);
+	$end_var = $start_var + $perpage - 1;
+	$paging_var = "";
+	// Build Previous Pagin Link 
+	if($go > 1){ 
+		$prev = ($go - 1); 
+		$paging_var .= "<a href=\"".$current_page.$chkgo."\"><img src='images/previous.gif' alt='Previous' align='absmiddle' border='0' width='8' height='11' /> </a"; 
+	} 
+	// Build Paging Link 
+	for($i = 1; $i <= $total_pages; $i++){
+		$paging_var .=  "<span class='pageNumbers'> (".($offset+1)." - ".$perpage." of ".$totalrecs.")</span>"; 
+	} 
+	// Build Next Paging Link 
+	if($go < $total_pages){ 
+		$next = ($go + 1); 
+		$paging_var .=  "<a href=\"".$current_page.$chkgo."\"><img src='images/next.gif' alt='Next' align='absmiddle' border='0' width='8' height='11' /></a>"; 
+	}
+	$presult = $db->query($sql) or die($sql);
+	$prow = $db->fetchArray($presult);
+	$ifexist = $db->getNumRows($presult);
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<link type="text/css" href="css/base/jquery.ui.all.css" rel="stylesheet" />	
+<script src="js/prototype.js"></script>
+<script type="text/javascript" src="js/effects.js"></script>
+<script type="text/javascript" src="js/lightwindow.js"></script>
+<script>
+function showdiv(divid1,divid2,divid3,divid4,divid5,divid6,divid7){
+	//alert(divid6);
+	document.getElementById(divid1).style.display='block';
+	document.getElementById(divid2).style.display='none';
+	document.getElementById(divid3).style.display='none';
+	document.getElementById(divid4).style.display='none';
+	document.getElementById(divid5).style.display='none';
+	document.getElementById(divid6).style.display='none';
+	document.getElementById(divid7).style.display='none';
+}
+function confirmdel(){
+	if(confirm('Are you sure want to delete this Property? It will delete contacts, location, budget and tax information related to this property.'))
+		window.location='property.php?id=<?=$prow['id']?>&del=1';
+	else
+		return false;
+}
+function addPhonetypes(){ 
+	hdnphone = document.getElementById("hdnaddphonetype").value;
+	newhdnphone = hdnphone;
+	newhtml = '<table width="99%" border="0" cellpadding="0" cellspacing="0"><tr><td width="33%" align="left" valign="top" class="formtxt">Phone:</td><td width="29%" align="left" valign="top" class="formtxt">Ext:</td><td width="20%" align="left" valign="top" class="formtxt">Type:</td><td width="18%" align="left" valign="top" class="formtxt">Priority:</td></tr><tr><td align="left" valign="top" width="33%"><input name="txtphone[]" type="text" class="form" id="txtphone[]" size="35" maxlength="50" /></td><td align="left" valign="top" width="29%"><input name="txtext[]" type="text" class="form" id="txtext[]" size="20" maxlength="10" /></td><td align="left" valign="top" width="20%"><?=fillCombo('txttype[]','types','id','name','WHERE active=1','','dropdown','')?></td><td align="left" valign="top" width="18%"><?=listbox_array($priorityArray,'txtpriority[]')?></td></tr></table>';
+	if(document.getElementById("phonetype"+hdnphone)){
+		newhdnphone++;
+		document.getElementById("phonetype"+hdnphone).style.display = 'block';
+		document.getElementById("phonetype"+hdnphone).innerHTML = newhtml +'<div id="phonetype'+newhdnphone+'" style="display:none"></div>';
+	}
+	document.getElementById("hdnaddphonetype").value = newhdnphone;
+}
+function editPhonetypes(){ 
+	d_html = '<div id="phonetype"><table width="99%" border="0" cellpadding="0" cellspacing="0"><tr><td width="33%" align="left" valign="top" class="formtxt">Phone:</td><td width="29%" align="left" valign="top" class="formtxt">Ext:</td><td width="20%" align="left" valign="top" class="formtxt">Type:</td><td width="18%" align="left" valign="top" class="formtxt">Priority:</td></tr><tr><td align="left" valign="top" width="33%"><input name="txtphone[]" type="text" class="form" id="txtphone[]" size="35" maxlength="50" /></td><td align="left" valign="top" width="29%"><input name="txtext[]" type="text" class="form" id="txtext[]" size="20" maxlength="10" /></td><td align="left" valign="top" width="20%"><?=fillCombo('txttype[]','types','id','name','WHERE active=1','','dropdown','')?></td><td align="left" valign="top" width="18%"><?=listbox_array($priorityArray,'txtpriority[]')?></td></tr></table></div><input name="phoneid[]" type="hidden" value="0" />';
+	main_html = document.getElementById("phone").innerHTML;
+	document.getElementById("phone").innerHTML = main_html + d_html;
+}
+function verifcreatecontact(){
+	/*if(document.getElementById('txtfname').value == ""){
+		alert('Please Enter First Name');
+		document.getElementById('txtfname').focus();
+		return false;
+	}
+	if(document.getElementById('txtlname').value == ""){
+		alert('Please Enter Last Name');
+		document.getElementById('txtlname').focus();
+		return false;
+	}*/
+	return true;
+}
+
+</script>
+<link rel="stylesheet" type="text/css" href="css/lightwindow.css" />
+</head>
+
+<body>
+<? include("header.php"); ?>
+<?php
+$resCheckContact = mysql_query("SELECT property_id FROM contact_to_property WHERE property_id = '".$_GET['id']."'");
+$checkContact = (mysql_num_rows($resCheckContact) > 0 ? "" : "style='border: 1px solid red;'");
+/*
+$resCheckLocation = mysql_query("SELECT property_id FROM location WHERE property_id = '".$_GET['id']."'");
+$checkLocation = (mysql_num_rows($resCheckLocation) > 0 ? "" : "style='display: none;'");
+
+$resCheckBudget = mysql_query("SELECT property_id FROM budget WHERE property_id = '".$_GET['id']."'");
+$checkBudget = (mysql_num_rows($resCheckBudget) > 0 ? "" : "style='display: none;'");
+
+$resCheckTax = mysql_query("SELECT property_id FROM tax WHERE property_id = '".$_GET['id']."'");
+$checkTax = (mysql_num_rows($resCheckTax) > 0 ? "" : "style='display: none;'");
+*/
+?>
+<table width="99%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap"><table width="100%" border="0" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Property Detail &nbsp;&nbsp;</b></td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top" class="side-nav"><? include('sidenav.php');?></td>
+                  <td align="left" valign="top" class="mar"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td align="left" valign="top" class="moduleTitle">Property Information <?php if($checkContact != "") { ?><span style='color: red;'><b>- WEB PROFILE ONLY</b></span><?php } ?></td>
+                        <td align="right" valign="top"><? if($ifexist >= 1){?><a href="editproperty.php?id=<?=$prow['id']?>" class="utilsLink">Edit</a><? }?></td>
+                      </tr>
+                    </table>
+                      <? if($ifexist >= 1){?><table width="100%" border="0" cellpadding="0" cellspacing="0" class="bg_borbot">
+                        <tr>
+                          <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td align="left" valign="top" bgcolor="#FFFFFF"><table width="100%" border="0" cellspacing="0" cellpadding="4">
+                                    <tr class="bot-bor">
+                                      <td width="16%" align="right" valign="top" class="bot-bor-bol">Property ID:</td>
+                                      <td width="27%" align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['property_id'] != '0') echo $prow['property_id']; ?>&nbsp;</td>
+                                      <td width="28%" align="right" valign="top" class="bot-bor-bol">Address:</td>
+                                      <td width="29%" align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['address'] != '0') echo $prow['address']; ?>&nbsp;</td>
+                                    </tr>
+                                    <tr class="bot-bor">
+                                      <td align="right" valign="top" class="bot-bor-bol">Company:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['company'] != '0') echo $prow['company']; ?>&nbsp;</td>
+                                      <td align="right" valign="top" class="bot-bor-bol">Address2:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['address2'] != '0') echo $prow['address2']; ?>&nbsp;</td>
+                                    </tr>
+                                    <tr class="bot-bor">
+                                      <td align="right" valign="top" class="bot-bor-bol">Web ID:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor">
+										<?php 
+										if ($prow['webid'] != '0') echo $prow['webid']." "; 
+										$badCategories = array("-a","-b","-c","-d","prv","Z");
+										mysql_select_db('planitlo_locations');
+										$sqlGetCats = "SELECT category1 FROM sorting WHERE prop_loc = '".$prow['property_id']."'";
+										if($resultGetCats = mysql_query($sqlGetCats)){
+											$countPrivate = 0;
+											$allCats = mysql_num_rows($resultGetCats);
+											while($rowGetCategories = mysql_fetch_array($resultGetCats)){
+												for($l = 0; $l < count($badCategories); $l++){
+													$lastStr = substr($rowGetCategories['category1'], -strlen($badCategories[$l]));
+													if($lastStr == $badCategories[$l]){
+														$countPrivate++;
+													}
+												}
+											}
+										}
+										if(($countPrivate == $allCats) && ($allCats != 0)){
+											echo "<span style='color: red;font-weight: bold;'>Secondary</span>";
+										}
+										if(($countPrivate != $allCats) && ($allCats != 0)){
+											echo "Primary";
+										}
+										if($allCats == 0){
+											echo "<span style='color: red;font-weight: bold;'>Missing</span>";
+										}
+										mysql_select_db('planitlo_crm');
+										?>&nbsp;
+									  </td>
+                                      <td align="right" valign="top" class="bot-bor-bol">City:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['city'] != '0') echo $prow['city']; ?>&nbsp;</td>
+                                    </tr>
+                                    <tr class="bot-bor">
+                                      <td align="right" valign="top" class="bot-bor-bol">Other Property ID: </td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['otherpropertyid'] != '0') echo $prow['otherpropertyid']; ?>&nbsp;</td>
+                                      <td align="right" valign="top" class="bot-bor-bol">State:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['statename'] != '0') echo $prow['statename']; ?>&nbsp;</td>
+                                    </tr>
+                                    <tr class="bot-bor">
+                                      <td align="right" valign="top" class="bot-bor-bol">Date Created:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?=date("m/d/Y",$prow['created_date'])?></td>
+                                      <td align="right" valign="top" class="bot-bor-bol"> Zip Code: </td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['zipcode'] != '0') echo $prow['zipcode']; ?>&nbsp;</td>
+                                    </tr>
+                                    <tr class="bot-bor">
+                                      <td align="right" class="bot-bor-bol">
+										DB ID: <?php echo $prow['id']; ?>
+									  </td>
+                                      <td align="left" bgcolor="#FFFFFF" class="bot-bor">
+										CB 1
+										<input class="cb1" id="cb1<?php echo $prow['id']; ?>"  type="checkbox" <?php if($prow["cb1"] == "1") echo "checked='checked'" ?> name="cb1" />
+										&nbsp;&nbsp;
+										CB 2
+										<input class="cb1" id="cb2<?php echo $prow['id']; ?>" type="checkbox" <?php if($prow["cb2"] == "1") echo "checked='checked'" ?> name="cb2" />
+										&nbsp;&nbsp;
+										CB 3
+										<input class="cb1" id="cb3<?php echo $prow['id']; ?>" type="checkbox" <?php if($prow["cb3"] == "1") echo "checked='checked'" ?> name="cb3" />
+									  </td>
+                                      <td align="right" valign="top" class="bot-bor-bol">County:</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF" class="bot-bor"><?php if($prow['countyname'] != '0') echo $prow['countyname']; ?>&nbsp;</td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top">&nbsp;</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF">&nbsp;</td>
+                                      <td align="left" valign="top">&nbsp;</td>
+                                      <td align="left" valign="top" bgcolor="#FFFFFF">&nbsp;</td>
+                                    </tr>
+                                </table></td>
+                              </tr>
+                              <tr>
+                                <td align="left" valign="top"><div id="contact_detail" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td align="left" valign="top"><table width="79%" border="0" cellspacing="0" cellpadding="0">
+                                          <tr>
+                                            <td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="i" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail', 'all', 'website', 'ws');return false;">Contacts Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Location Info  </a></td>
+                                            <td width="6"></td>
+                                            <td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all', 'website', 'ws');return false;">Budget Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all', 'website', 'ws');return false;">Tax Info</a></td>
+                                            <td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('website', 'all', 'tax_detail','location_detail','contact_detail','budget_detail', 'ws');return false;">Categories and sorting</a></td>
+                                            <td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+                                            <td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail', 'website', 'ws');return false;">All</a></td>
+                                            <td width="5"></td>
+                                            </tr>
+                                      </table></td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="listview">
+                  <tr bgcolor="#D0E1F4" height="20">
+                    <td width="4%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    <td height="25" colspan="3" nowrap="nowrap" class="a" scope="col"> Contact Name &nbsp;&nbsp; </td>
+                    <td width="18%" height="25" nowrap="nowrap" class="a" scope="col">Email&nbsp;&nbsp; </td>
+                    <td width="15%" height="25" nowrap="nowrap" class="a" scope="col">Phone&nbsp;&nbsp; ��</td>
+                    <td height="25" nowrap="nowrap" class="a" scope="col">Notes</td>
+                    <td width="13%" height="25" nowrap="nowrap" class="a" scope="col">Action<span class="listViewThS1">&nbsp;&nbsp; <a href="add-property-contact.php" class="lightwindow page-options n">Add New</a></span></td>
+                  </tr>
+                  <? 
+						$sqlcontact = "SELECT contact.* FROM contact_to_property inner join contact on contact_to_property.contact_id=contact.id
+										WHERE contact_to_property.property_id=".$prow['id'];
+						$cresult = $db->query($sqlcontact) or die(mysql_error()." ".$sqlcontact);
+						if($db->getNumRows($cresult) >= 1){
+							while($crow = $db->fetchArray($cresult)){
+								$typesql = "SELECT phone.*, types.name as typename FROM phone left join types on phone.type=types.id 
+															WHERE phone.contact_id=".$crow['id'];
+								$tresult = $db->query($typesql) or die($typesql);
+								$phonenumbers = '';
+								while($trow=$db->fetchArray($tresult)){
+									$phonenumbers .= CheckUSPhoneNum($trow['number']);
+									if($trow['ext'] != '0')
+										$phonenumbers.=' ext:'.$trow['ext'];
+									if($trow['typename'] != '')
+										$phonenumbers.=' ('.$trow['typename'].')';
+									$phonenumbers .= '<br>';
+								}
+								
+							
+					?>
+                  <tr height="20">
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><a href="view-property-contact.php?c=<?=$crow['id']?>" class="lightwindow page-options n"><?php if($crow['firstname'] != '0') echo $crow['firstname']; ?> <?php if($crow['lastname'] != '0') echo $crow['lastname']; ?></a></td>
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($crow['email'] != '0') echo $crow['email']; ?></td>
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($phonenumbers != '0') echo $phonenumbers; ?></td>
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($crow['notes'] != '0') echo $crow['notes']; ?></td>
+                    <td width="13%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="edit-property-contact.php?id=<?=$crow['id']?>" class="lightwindow page-options n">Edit</a></td>
+                  </tr>
+                  <? }
+					}else{?>
+                  <tr height="20">
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                    <td width="13%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"></td>
+                    <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                  </tr>
+                  <? }?>
+                </table></td>
+                                    </tr>
+                                </table></div>
+								<? 
+									//Select Location information related to property
+									$locqry = "SELECT * FROM location WHERE property_id=".$prow['id'];
+									$lresult = $db->query($locqry) or die($locqry);
+									$lrow = $db->fetchArray($lresult);
+								?>
+								<div id="location_detail" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td align="left" valign="top"><table width="79%" border="0" cellspacing="0" cellpadding="0">
+                                         <tr>
+                                            <td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','website','all', 'ws');return false;">Contacts Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="i" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','website','all', 'ws');return false;">Location Info  </a></td>
+                                            <td width="6"></td>
+                                            <td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','website','all', 'ws');return false;">Budget Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','website','all', 'ws');return false;">Tax Info</a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all', 'ws');return false;">Categories and sorting</a></td>
+											<td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+                                            <td width="5"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','website','budget_detail', 'ws');return false;">All</a></td>
+                                            <td width="5"></td>
+                                             </tr>
+                                      </table></td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+                <tr>
+                  <td align="right" class="bodytext">License:</td>
+                  <td class="formtxt"><? if($lrow['license'] == 1) echo 'Yes'; else echo 'No';?></td>
+                  <td align="right" class="bodytext">Sq Feet: </td>
+                  <td class="formtxt"><?php if($lrow['squarefit'] != '0') echo $lrow['squarefit']; ?></td>
+                  <td align="right" class="bodytext">Areas off limit: </td>
+                  <td class="formtxt"><?php if($lrow['limitareas'] != '0') echo $lrow['limitareas']; ?></td>
+                </tr>
+                <tr>
+                  <td align="right" class="bodytext">Neighbors:</td>
+                  <td class="formtxt"><?php if($lrow['neighbors'] != '0') echo $lrow['neighbors']; ?></td>
+                  <td align="right" class="bodytext">Animals:</td>
+                  <td class="formtxt"><?php if($lrow['animals'] != '0') echo $lrow['animals']; ?></td>
+                  <td align="right" class="bodytext">Date Built: </td>
+                  <td class="formtxt"><?php if($lrow['datebuilt'] != '0') echo $lrow['datebuilt']; ?></td>
+                </tr>
+                <tr>
+                  <td align="right" class="bodytext">Previous Filming:</td>
+                  <td class="formtxt"><?php if($lrow['previousfilming'] != '0') echo $lrow['previousfilming']; ?></td>
+                  <td align="right" class="bodytext">Parking:</td>
+                  <td class="formtxt"><?php if($lrow['parking'] != '0') echo $lrow['parking']; ?></td>
+                  <td align="right" class="bodytext">Bedroom Count: </td>
+                  <td class="formtxt"><?php if($lrow['bedroom'] != '0') echo $lrow['bedroom']; ?></td>
+                </tr>
+                <tr>
+                  <td align="right" class="bodytext">Restroom Count: </td>
+                  <td class="formtxt"><?php if($lrow['restroom'] != '0') echo $lrow['restroom']; ?></td>
+                  <td align="right" class="bodytext">Referal Form: </td>
+                  <td colspan="3" class="formtxt"><?php if($lrow['referalform'] != '0') echo $lrow['referalform']; ?></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">Features:</td>
+                  <td colspan="5"><label>
+                    <input name="txtadultfriendly" type="checkbox" id="txtadultfriendly" <? if($lrow['adultfriendly'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Adult Friendly
+                    <input name="txtpool" type="checkbox" id="txtpool" value="1" <? if($lrow['pool'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Pool
+                    <input name="txttennisecourt" type="checkbox" id="txttennisecourt" value="1" <? if($lrow['tennisecourt'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Tennis Court
+                    <input name="txtcityview" type="checkbox" id="txtcityview" value="1" <? if($lrow['cityview'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    City View
+                    <input name="txtnicebackyard" type="checkbox" id="txtnicebackyard" value="1" <? if($lrow['nicebackyard'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Nice Backyard
+                    <input name="txthomeassociation" type="checkbox" id="txthomeassociation" value="1" <? if($lrow['homeassociation'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Home Association</label></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">Architect:</td>
+                  <td class="formtxt"><?if ($lrow['architect'] != '0') echo $lrow['architect']; ?></td>
+                  <td align="right" class="bodytext">House Name: </td>
+                  <td colspan="3" class="formtxt"><?php if($lrow['housename'] != '0') echo $lrow['housename']; ?></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">&nbsp;</td>
+                  <td colspan="5" class="formtxt"><label>
+                    <input name="txtnewpropertyowner" type="checkbox" id="txtnewpropertyowner" <? if($lrow['newpropertyowner'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Find New Property Owner
+                    <input name="txtfilmingorevents" type="checkbox" id="txtfilmingorevents" <? if($lrow['filmingorevents'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    No Longer For Filming or Events</label></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" align="left" class="bodytext"><div id="notes1">
+				  <? 
+				  	$type = 1;
+					$property_id = $prow['id'];
+				  ?>
+				  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                    <tr bgcolor="#D0E1F4" height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a"> Notes&nbsp;&nbsp; </div></td>
+                      <td width="11%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">User&nbsp;&nbsp; </div></td>
+                      <td width="14%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">Date Modified&nbsp;&nbsp; </div></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><span class="a">Action</span>&nbsp;&nbsp; <a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Add New</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? 
+						$sqlnotes = "SELECT * FROM notes WHERE type=".$type." and property_id=".$prow['id'];
+						$nresult = $db->query($sqlnotes) or die(mysql_error()." ".$sqlnotes);
+						if($db->getNumRows($nresult) >= 1){
+						while($nrow = $db->fetchArray($nresult)){
+							if($nrow['userid'] == '')
+								$nrow['userid'] = 1;
+					?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($nrow['text'] != '0') echo $nrow['text']; ?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=ReturnName('user','username','id',$nrow['userid'])?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=date("m/d/Y",strtotime($nrow['datentime']))?></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('notes.php?id=<?=$nrow['id']?>&amp;property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=2','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Edit</a> | <a href="#" onclick="if(confirm('Are you sure want to delete this notes?')){deleteNotes('<?=$nrow['id']?>','<?=$type?>','<?=$property_id?>');return false;}else{return false};" class="n">Delete</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }
+					}else{?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n"></a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }?>
+                  </table></div></td>
+                  </tr>
+              </table></td>
+                                    </tr>
+                                </table></div>
+								<? 
+									//Select Budget information related to property
+									$bdqry = "SELECT * FROM budget WHERE property_id=".$prow['id'];
+									$bresult = $db->query($bdqry) or die($bdqry);
+									$brow = $db->fetchArray($bresult);
+								?>
+								<div id="budget_detail" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td align="left" valign="top"><table width="79%" border="0" cellspacing="0" cellpadding="0">
+                                         <tr>
+                                            <td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','all','website', 'ws');return false;">Contacts Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all','website', 'ws');return false;">Location Info  </a></td>
+                                            <td width="6"></td>
+                                            <td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="i" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all','website', 'ws');return false;">Budget Info </a></td>
+                                            <td width="4"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all','website', 'ws');return false;">Tax Info</a></td>
+											<td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all', 'ws');return false;">Categories and sorting</a></td>
+                                            <td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+                                            <td width="5"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail','website', 'ws');return false;">All</a></td>
+                                            <td width="5"></td>
+                                             </tr>
+                                      </table></td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+                <!--<tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%" class="formtxt"><label>
+                        <input name="txthighbudget" type="checkbox" id="txthighbudget" <? if($brow['highbudget'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        High Budget
+                        <input name="txtmediumbudget" type="checkbox" id="txtmediumbudget" <? if($brow['mediumbudget'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Mid Budget
+                        <input name="txtlowbudget" type="checkbox" id="txtlowbudget" <? if($brow['lowbudget'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Low Budget</label></td>
+                    </tr>
+                  </table></td>
+                  </tr>-->
+                <tr>
+                  <td width="16%" align="right" class="bodytext">Budget Notes :</td>
+                  <td colspan="5" class="formtxt"><?=$brow['budgetnotes']?></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" class="formtxt"><strong>Film Information </strong></td>
+                  </tr>
+                <tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%" class="formtxt"><label>
+                        <input name="txtfilmfriendly" type="checkbox" id="txtfilmfriendly" <? if($brow['filmfriendly'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Film Friendly
+                        <input name="txtinteriorfilming" type="checkbox" id="txtinteriorfilming" <? if($brow['interiorfilming'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Interior Filming
+                        <input name="txtexteriorfilming" type="checkbox" id="txtexteriorfilming" <? if($brow['exteriorfilming'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Exterior Filming </label></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+
+                <tr>
+                  <td align="right" class="bodytext">Avg. Film Budget :</td>
+                  <td width="33%" class="formtxt"><?php if($brow['filmbudget'] != '0') echo $brow['filmbudget']; ?></td>
+                  <td width="23%" align="right" class="bodytext">Max Head Count:</td>
+                  <td width="24%" class="formtxt"><?php if($brow['filmmaxheat'] != '0') echo $brow['filmmaxheat']; ?></td>
+                  <td width="2%" align="right" class="bodytext">Film Parking: </td>
+                  <td width="2%" class="formtxt"><?php if($brow['filmparking'] !='0') echo $brow['filmparking']; ?></td>
+                </tr>
+                <tr>
+                  <td colspan="6" align="left" class="bodytext"><div id="notes2">
+				  <? 
+				  	$type = 2;
+					$property_id = $prow['id'];
+				  ?>
+				  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                    <tr bgcolor="#D0E1F4" height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a"> Notes&nbsp;&nbsp; </div>                        </td>
+                      <td width="11%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">User&nbsp;&nbsp; </div></td>
+                      <td width="14%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">Date Modified&nbsp;&nbsp; </div>                        </td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><span class="a">Action</span>&nbsp;&nbsp; <a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&type=<?=$type?>&op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Add New</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+					<? 
+						$sqlnotes = "SELECT * FROM notes WHERE type=".$type." and property_id=".$prow['id'];
+						$nresult = $db->query($sqlnotes) or die(mysql_error()." ".$sqlnotes);
+						if($db->getNumRows($nresult) >= 1){
+						while($nrow = $db->fetchArray($nresult)){
+							if($nrow['userid'] == '')
+								$nrow['userid'] = 1;
+					?>
+					<tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($nrow['text'] != '0') echo $nrow['text']; ?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=ReturnName('user','username','id',$nrow['userid'])?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=date("m/d/Y",strtotime($nrow['datentime']))?></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"> <a href="#" onclick="window.open('notes.php?id=<?=$nrow['id']?>&property_id=<?=$prow['id']?>&type=<?=$type?>&op=2','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Edit</a> | <a href="#" onClick="if(confirm('Are you sure want to delete this notes?')){deleteNotes('<?=$nrow['id']?>','<?=$type?>','<?=$property_id?>');return false;}else{return false};" class="n">Delete</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+					<? }
+					}else{?>
+					<tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"> <a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&type=<?=$type?>&op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n"></a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+					<? }?>
+				  </table></div></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" class="formtxt"><strong>Events Information </strong></td>
+                </tr>
+                <tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%" class="formtxt"><label>
+                        <input name="txteventfriendly" type="checkbox" id="txteventfriendly" <? if($brow['eventfriendly'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Event Friendly
+                        <input name="txtinteriorevent" type="checkbox" id="txtinteriorevent" <? if($brow['interiorevent'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Interior Events
+                        <input name="txtexteriorevent" type="checkbox" id="txtexteriorevent" <? if($brow['exteriorevent'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Exterior Events </label></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">Avg. Event Budget :</td>
+                  <td class="formtxt"><?php if($brow['eventbudget'] != '0') echo $brow['eventbudget']; ?></td>
+                  <td align="right" class="bodytext">Max Head Count:</td>
+                  <td class="formtxt"><?php if($brow['eventmaxheat'] != '0') echo $brow['eventmaxheat']; ?></td>
+                  <td align="right" class="bodytext">Event Parking: </td>
+                  <td class="formtxt"><?php if($brow['eventparking'] != '0') echo $brow['eventparking']; ?></td>
+                </tr>
+                <tr>
+                  <td colspan="6" align="left" class="bodytext"><div id="notes3">
+				  <? 
+				  	$type = 3;
+					$property_id = $prow['id'];
+				  ?>
+				  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                    <tr bgcolor="#D0E1F4" height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a"> Notes&nbsp;&nbsp; </div>                        </td>
+                      <td width="11%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">User&nbsp;&nbsp; </div></td>
+                      <td width="14%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">Date Modified&nbsp;&nbsp; </div>                        </td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><span class="a">Action</span>&nbsp;&nbsp; <a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&type=<?=$type?>&op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Add New</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+					<? 
+						$sqlnotes = "SELECT * FROM notes WHERE type=".$type." and property_id=".$prow['id'];
+						$nresult = $db->query($sqlnotes) or die(mysql_error()." ".$sqlnotes);
+						if($db->getNumRows($nresult) >= 1){
+						while($nrow = $db->fetchArray($nresult)){
+							if($nrow['userid'] == '')
+								$nrow['userid'] = 1;
+					?>
+					<tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($nrow['text'] != '0') echo $nrow['text']; ?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=ReturnName('user','username','id',$nrow['userid'])?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=date("m/d/Y",strtotime($nrow['datentime']))?></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"> <a href="#" onclick="window.open('notes.php?id=<?=$nrow['id']?>&property_id=<?=$prow['id']?>&type=<?=$type?>&op=2','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Edit</a> | <a href="#" onClick="if(confirm('Are you sure want to delete this notes?')){deleteNotes('<?=$nrow['id']?>','<?=$type?>','<?=$property_id?>');return false;}else{return false};" class="n">Delete</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+					<? }
+					}else{?>
+					<tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"> <a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&type=<?=$type?>&op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n"></a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+					<? }?>
+				  </table></div></td>
+                  </tr>
+              </table></td>
+                                    </tr>
+                                </table></div>
+								<?
+								//Select Tax information related to property
+								$tqry = "SELECT * FROM tax WHERE property_id=".$prow['id'];
+								$tresult = $db->query($tqry) or die($tqry);
+								$trow = $db->fetchArray($tresult);
+								?>
+								<div id="tax_detail" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td align="left" valign="top"><table width="79%" border="0" cellspacing="0" cellpadding="0">
+                                         <tr>
+                                            <td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Contacts Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Location Info  </a></td>
+                                            <td width="6"></td>
+                                            <td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all', 'website', 'ws');return false;">Budget Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="i" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all', 'website', 'ws');return false;">Tax Info</a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all', 'ws');return false;">Categories and sorting</a></td>
+                                            <td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+                                            <td width="5"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail', 'website', 'ws');return false;">All</a></td>
+                                            <td width="5"></td>
+                                            </tr>
+                                      </table></td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+											<tr>
+											  <td align="right" class="bodytext">Tax Company:</td>
+											  <td class="formtxt"><?php if($trow['company'] != '0') echo $trow['company']; ?></td>
+											  <td align="right" class="bodytext">Taxt First Name: </td>
+											  <td class="formtxt"><?php if($trow['firstname'] != '0') echo $trow['firstname']; ?></td>
+											  <td align="right" class="bodytext">Tax Last Name: </td>
+											  <td class="formtxt"><?php if($trow['lastname'] != '0') echo $trow['lastname']; ?></td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax Address:</td>
+											  <td class="formtxt"><?php if($trow['address'] != '0') echo $trow['address']; ?></td>
+											  <td align="right" class="bodytext">Tax Address2:</td>
+											  <td class="formtxt"><?php if($trow['address2'] != '0') echo $trow['address2']; ?></td>
+											  <td align="right" class="bodytext">Tax City: </td>
+											  <td class="formtxt"><?php if ($trow['city'] != '0') echo $trow['city']; ?></td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax State:</td>
+											  <td class="formtxt"><?php if($trow['state'] != '0') echo $trow['state']; ?></td>
+											  <td align="right" class="bodytext">Tax Zipcode:</td>
+											  <td class="formtxt"><?php if($trow['zipcode'] != '0') echo $trow['zipcode']; ?></td>
+											  <td align="right" class="bodytext">&nbsp;</td>
+											  <td>&nbsp;</td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax Amount:</td>
+											  <td colspan="5" class="formtxt"><label>$ 
+												<?php if($trow['amount'] != '0') echo $trow['amount']; ?>
+											  </label></td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax Notes1:</td>
+											  <td class="formtxt"><?php if($trow['notes1'] != '0') echo $trow['notes1']; ?></td>
+											  <td align="right" class="bodytext">Tax Notes2:  </td>
+											  <td colspan="3" class="formtxt"><?php if($trow['notes2'] != '0') echo $trow['notes2']; ?></td>
+										    </tr>
+											<tr>
+											  <td align="right">&nbsp;</td>
+											  <td colspan="5" class="formtxt"><label>
+												<input name="txtmailtaxes" type="checkbox" id="txtmailtaxes" <? if($trow['mailtaxes'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+												Do Not Mail Taxes
+												<input name="txtquestionable" type="checkbox" id="txtquestionable" <? if($trow['questionable'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+												Questionable</label></td>
+											</tr>
+										  </table></td>
+                                    </tr>
+                                </table></div>
+								
+								<?php
+								mysql_select_db("planitlo_locations");
+								$propLoc = $prow['property_id'];
+								$sqlThumbs = "SELECT prop_domain_loc, prop_loc, tn_domain_loc, thumb01, thumb02, thumb03 FROM prop_info WHERE prop_loc = '".$propLoc."'";
+								if($resultThumbs = mysql_query($sqlThumbs)){
+									$rowThumbs = mysql_fetch_array($resultThumbs);
+									$domain = $rowThumbs['tn_domain_loc'];
+									$thumb1 = $rowThumbs['thumb01'];
+									$thumb2 = $rowThumbs['thumb02'];
+									$thumb3 = $rowThumbs['thumb03'];
+									$url = $rowThumbs['prop_domain_loc'];
+									$prop_loc = $rowThumbs['prop_loc'];
+								}else{
+									echo mysql_error();
+								}
+								$sqlSorting = "SELECT * FROM sorting WHERE prop_loc = '".$propLoc."'";
+								if($resultSorting = mysql_query($sqlSorting)){
+								
+								}else{
+									echo mysql_error();
+								}
+								?>
+								<input type="hidden" value="<?php echo $prop_loc ?>" id="hidPropLoc" />
+								<div id="website" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+										<tr>
+											<td align="left" valign="top">
+												<table width="79%" border="0" cellspacing="0" cellpadding="0">
+													<tr>
+														<td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Contacts Info </a></td>
+														<td width="4"></td>
+														<td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Location Info  </a></td>
+														<td width="6"></td>
+														<td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all', 'website', 'ws');return false;">Budget Info </a></td>
+														<td width="4"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all', 'website', 'ws');return false;">Tax Info</a></td>
+														<td width="4"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="i" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all', 'ws');return false;">Categories and sorting</a></td>
+														<td width="5"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+														<td width="5"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail', 'website', 'ws');return false;">All</a></td>
+														<td width="5"></td>
+													</tr>
+												</table>
+											</td>
+										</tr>
+										<tr>
+											<td align="left" valign="top" class="border2">
+												<?php 
+												
+													mysql_select_db('planitlo_locations');
+													$checkifExist = "SELECT prop_loc FROM prop_info WHERE prop_loc = '".strtolower($prow['property_id'])."'";
+													if($resCheckIfExist = mysql_query($checkifExist)){
+														if(mysql_num_rows($resCheckIfExist) > 0){
+															$countExist = 1;
+														}else{
+															$countExist = 0;
+														}
+													}else{
+														echo mysql_error();
+													}
+													//echo mysql_num_rows($resCheckIfExist);
+													mysql_select_db('planitlo_crm');
+													if($countExist == 1){
+														?>
+														<table border="0" cellpadding="3" cellspacing="0" class="listview" width="913">
+															<tr bgcolor="#d0e1f4" height="20">
+																<td height="25" scope="col" class="listViewThS1" colspan="6">
+																	<div align="left" class="a" width="100%" style="white-space: nowrap; float: left;">
+																		&nbsp;&nbsp;Categories and sorting
+																	</div>
+																</td>
+															</tr>
+															<tr>
+																<td colspan="6">
+															
+																	<a style="text-decoration: none;" href="<?php echo $url.$prop_loc.'/index.php?id='.$prop_loc.'&id2=&id3=&id4=&id5=&id6=&id7=&id8=&id9=&id10=' ?>" target="_blank">
+																		<?php 
+																		if(!empty($domain)){
+																			if(!empty($thumb1)){
+																				?><img style="border-style: none;" src="<?php echo $domain.$thumb1 ?>" alt="" />&nbsp;&nbsp;<?php 
+																			}
+																			if(!empty($thumb2)){
+																				?><img style="border-style: none;" src="<?php echo $domain.$thumb2 ?>" alt="" />&nbsp;&nbsp;<?php 
+																			}
+																			if(!empty($thumb3)){
+																				?><img style="border-style: none;" src="<?php echo $domain.$thumb3 ?>" alt="" />&nbsp;&nbsp;<?php 
+																			}
+																		}
+																		?>
+																	</a>
+																</td>
+															</tr>
+															<tr>
+																<td colspan="6">
+																	<b>Step one:</b>
+																</td>
+															</tr>
+															<tr>
+																<td colspan="6">
+																	<input type="button" id="addMissing" value="Add missing columns" />
+																</td>
+															</tr>
+															<tr>
+																<td colspan="6">
+																	<br /><b>Step two:</b>
+																</td>
+															</tr>
+															<tr>
+																<td colspan="6">
+																	<b>Add property to new category</b>
+																</td>
+															</tr>
+															<tr>
+																<td width="150" colspan="6">
+																	Category &nbsp;
+																	<input type="text" class="form" id="txtNewCategory" style="width: 138px;" />&nbsp;
+																	Sorting&nbsp;
+																	<input type="text" class="form" id="txtNewPriority" style="width: 50px;" />&nbsp;
+																	<?php if(in_array($checkUsername, $allowUsers)){ ?>
+																		<span id="saveCheckCat" style="cursor: pointer">Check category</span>&nbsp;&nbsp;
+																		<span id="saveNewSorting" style="cursor: pointer">Save</span>
+																	<?php } ?>
+																</td>
+															</tr>
+															<tr>
+																<td width="150"><b>Category</b></td>
+																<td width="150"><b>Sorting</b></td>
+																<td width="150"><b>New sorting</b></td>
+																<td width="150"><!-- <b>Website page number</b> --></td>
+																<td width="150"><!-- <b>Link to website</b> --></td>
+																<td width="150"></td>
+															</tr>
+															<?php
+															$whatClass = 0;
+															while($rowSorting = mysql_fetch_array($resultSorting)){
+																$whatClass++;
+																if($whatClass == 1){
+																	$showClass = "visibleRow";
+																}else{
+																	$showClass = "hiddenRow";
+																}
+																?>
+																<tr class="<?php echo $showClass ?>">
+																	<td class="listViewThS1">
+																		<a href="https://planitlocations.com/search/search.php?cat=<?php echo $rowSorting['category1'] ?>" target="_blank">
+																			<?php echo $rowSorting['category1'] ?></td>
+																		</a>
+																	<td class="listViewThS1">
+																		<span id="span<?php echo $rowSorting['ID']; ?>" class="spanPriority">
+																			<?php echo $rowSorting['Priority']; ?>
+																		</span>
+																		<input type="text" value="<?php echo $rowSorting['Priority']; ?>" id="txt<?php echo $rowSorting['ID']; ?>" class="txtPriority" style="width:65px; height: 12px;"/>
+																	</td>
+																	<td class="listViewThS1">
+																		<?php 
+																		$sqlNewSort = "SELECT * FROM sortings WHERE cat_name = '".$rowSorting['category1']."'";
+																		if($resultNewSort = mysql_query($sqlNewSort)){
+																			$rowNewSort = mysql_fetch_array($resultNewSort);
+																			$arrNewSort = explode(',', $rowNewSort['sorting']);
+																			$count = 0;
+																			$fullCatName = $propLoc." <~Property ID";
+																			foreach($arrNewSort as $newSort){
+																				$count++;
+																				if($fullCatName == $newSort){
+																					break;
+																				}
+																			}
+																			if($count == "1"){
+																				echo "Not sortet yet.";
+																			}else{
+																				echo $count;
+																			}
+																			
+																		}
+																		?>
+																	</td>
+																	<?php if(in_array($checkUsername, $allowUsers)){ ?>
+																		<td class="listViewThS1">
+																			<span id="save<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editSave">Save | </span>
+																			<span id="cancel<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editCancel">Cancel | </span>
+																			<span id="edit<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editSort">Edit | </span>
+																			<span id="delete<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editDelete">Delete</span>
+																		</td>
+																	<?php } ?>
+																	<td class="listViewThS1"></td>
+																	<td class="listViewThS1"></td>
+																</tr>
+																<?php 
+															}
+															?>
+															<tr id="rowShowAll">
+																<td><span style="cursor: pointer;display: none;" id="btnShowAll">Show all categories</span></td>
+															</tr>
+															<tr id="rowHideAll">
+																<td><span style="cursor: pointer;display: none;" id="btnHideAll">Hide all categories</span></td>
+															</tr>
+														</table>
+													<?php 
+													}else{
+													?>
+														<table border="0" cellpadding="3" cellspacing="0" class="listview" width="913">
+															<tr bgcolor="#d0e1f4" height="20">
+																<td height="25" scope="col" class="listViewThS1" colspan="6">
+																	<div align="left" class="a" width="100%" style="white-space: nowrap; float: left;">
+																		&nbsp;&nbsp;Categories and sorting - Please go to 'Website Data' tab first and save a record.
+																	</div>
+																</td>
+															</tr>
+														</table>
+													<?php 
+													}
+												?>
+											</td>
+										</tr>
+									</table>
+								</div>
+								
+								<input type="hidden" value="<?php echo $prop_loc ?>" id="hidPropLoc" />
+								<div id="ws" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+										<tr>
+											<td align="left" valign="top">
+												<table width="79%" border="0" cellspacing="0" cellpadding="0">
+													<tr>
+														<td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Contacts Info </a></td>
+														<td width="4"></td>
+														<td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Location Info  </a></td>
+														<td width="6"></td>
+														<td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all', 'website', 'ws');return false;">Budget Info </a></td>
+														<td width="4"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all', 'website', 'ws');return false;">Tax Info</a></td>
+														<td width="4"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all', 'ws');return false;">Categories and sorting</a></td>
+														<td width="5"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="i" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+														<td width="5"></td>
+														<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail', 'website', 'ws');return false;">All</a></td>
+														<td width="5"></td>
+													</tr>
+												</table>
+											</td>
+										</tr>
+										<tr>
+											<td align="left" valign="top" class="border2">
+												<?php 
+												if(in_array($checkUsername, $allowUsers)){
+													?>
+													<form action="" method="post" name="formAdd" id="formAdd">
+														<?php 
+														mysql_select_db('planitlo_locations');
+														$checkifExist = "SELECT * FROM prop_info WHERE prop_loc = '".strtolower($prow['property_id'])."'";
+														if($resCheckIfExist = mysql_query($checkifExist)){
+															if(mysql_num_rows($resCheckIfExist) > 0){
+																$countExist = 1;
+															}else{
+																$countExist = 0;
+															}
+														}else{
+															echo mysql_error();
+														}
+														mysql_select_db('planitlo_crm');
+														//echo $countExist;
+														if($countExist == 1){
+															$rowExist = mysql_fetch_array($resCheckIfExist);
+															$wsPropName = $rowExist['prop_name'];
+															$wsPropDomLoc = $rowExist['prop_domain_loc'];
+															$wsPropLoc = $rowExist['prop_loc'];
+															$wsThumbsDomLoc = $rowExist['tn_domain_loc'];
+															$wsThumb1 = $rowExist['thumb01'];
+															$wsThumb2 = $rowExist['thumb02'];
+															$wsThumb3 = $rowExist['thumb03'];
+															$wsPropName2 = $rowExist['prop_name2'];
+															$wsPropName3 = $rowExist['prop_name3'];
+															$wsAd = $rowExist['ad'];
+															$countExist = $rowExist['prop_loc'];
+														}else{
+															$wsPropName = $prow['property_id'].' <~Property ID';
+															$wsPropDomLoc = "http://www.planitserver.com/host_";
+															$wsPropLoc = strtolower($prow['property_id']);
+															$wsThumbsDomLoc = "http://www.planitserver.com/thumbs/";
+															$wsThumb1 = 'tn_'.strtolower($prow['property_id']).'_01.jpg';
+															$wsThumb2 = 'tn_'.strtolower($prow['property_id']).'_02.jpg';
+															$wsThumb3 = 'tn_'.strtolower($prow['property_id']).'_03.jpg';
+															$wsPropName2 = '* Click On Photos Below *';
+															$wsPropName3 = '';
+															$wsAd = '0';
+															$countExist = '';
+														}
+														
+														?>
+														<input type="hidden" value="<?php echo $countExist ?>" name="exist" id="exist" />
+														<table border="0" cellpadding="3" cellspacing="0" class="listview" width="440">
+															<tr bgcolor="#d0e1f4" height="20">
+																<td height="25" scope="col" class="listViewThS1" colspan="3">
+																	<div align="left" class="a" width="100%" style="white-space: nowrap; float: left;">
+																		&nbsp;&nbsp;Website data <?php if($countExist == '') echo "- Not saved yet."; ?>
+																		<br />
+																		&nbsp;&nbsp;Notice: Please upload thumbs first.
+																	</div>
+																</td>
+															</tr>
+															<tr>
+																<td>Property name:</td>
+																<td>
+																	<input type="text" class="form" name="wsPropName" value="<?php echo $wsPropName; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Property domain location:</td>
+																<td>
+																	<input type="text" class="form" name="wsPropDomLoc" value="<?php echo $wsPropDomLoc; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Property location:</td>
+																<td>
+																	<input type="text" class="form" name="wsPropLoc" readonly value="<?php echo $wsPropLoc; ?>" style="width: 300px;" />
+																</td>
+																<td><!-- <span class="clearValue" style="cursor: pointer">x</span> --></td>
+															</tr>
+															<tr>
+																<td>Thumbs domain location:</td>
+																<td>
+																	<input type="text" class="form" name="wsThumbsDomLoc" value="<?php echo $wsThumbsDomLoc; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Thumbnail 1:</td>
+																<td>
+																	<input type="text" class="form" name="wsThumb1" value="<?php echo $wsThumb1; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Thumbnail 2:</td>
+																<td>
+																	<input type="text" class="form" name="wsThumb2" value="<?php echo $wsThumb2; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Thumbnail 3:</td>
+																<td>
+																	<input type="text" class="form" name="wsThumb3" value="<?php echo $wsThumb3; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Property name 2:</td>
+																<td>
+																	<input type="text" class="form" name="wsPropName2" value="<?php echo $wsPropName2; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Property name 3:</td>
+																<td>
+																	<input type="text" class="form" name="wsPropName3" value="<?php echo $wsPropName3; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td>Ad:</td>
+																<td>
+																	<input type="text" class="form" name="wsAd" id="wsAd" value="<?php echo $wsAd; ?>" style="width: 300px;" />
+																</td>
+																<td><span class="clearValue" style="cursor: pointer">x</span></td>
+															</tr>
+															<tr>
+																<td></td>
+																<td align="right">
+																	<?php if($countExist != ''){
+																		?><input type="button" name="deleteToLoc" class="deleteToLoc" value="Delete" /><?php 
+																	}
+																	?>															
+																	<input type="submit" name="saveToLoc" value="Save" onClick="return checkformAdd();" />
+																</td>
+															</tr>
+														</table>
+													</form>
+												<?php 
+												}else{
+													echo "Admin area.";
+												}
+												?>
+											</td>
+										</tr>
+									</table>
+								</div>
+								<?php
+								mysql_select_db("planitlo_crm");
+								?>
+								<div id="all"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td align="left" valign="top"><table width="79%" border="0" cellspacing="0" cellpadding="0">
+                                         <tr>
+                                            <td width="114" <?php echo $checkContact ?> align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Contacts Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="135" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all', 'website', 'ws');return false;">Location Info  </a></td>
+                                            <td width="6"></td>
+                                            <td width="170" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all', 'website', 'ws');return false;">Budget Info </a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all', 'website', 'ws');return false;">Tax Info</a></td>
+                                            <td width="4"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all', 'ws');return false;">Categories and sorting</a></td>
+                                            <td width="5"></td>
+											<td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="h" onclick="showdiv('ws', 'all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">Website data</a></td>
+                                            <td width="5"></td>
+                                            <td width="140" <?php echo $checkContact ?> align="center" valign="middle"><a href="#" class="i" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail', 'website', 'ws');return false;">All</a></td>
+                                            <td width="5"></td>
+                                            </tr>
+                                      </table></td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><div id="">
+  <div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#FFFFFF">
+      <tr>
+        <td align="left" valign="top" bgcolor="#FFFFFF" class="newhead">Contacts Info</td>
+      </tr>
+      <tr>
+        <td align="left" valign="top" bgcolor="#FFFFFF" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="listview">
+                  <tr bgcolor="#E1E1E1" height="20">
+                    <td width="4%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    <td height="25" colspan="3" nowrap="nowrap" class="a" scope="col"> Contact Name &nbsp;&nbsp; </td>
+                    <td width="18%" height="25" nowrap="nowrap" class="a" scope="col">Email&nbsp;&nbsp; </td>
+                    <td width="15%" height="25" nowrap="nowrap" class="a" scope="col">Phone&nbsp;&nbsp; ��</td>
+                    <td height="25" nowrap="nowrap" class="a" scope="col">Notes</td>
+                    <td width="13%" height="25" nowrap="nowrap" class="a" scope="col">Action<span class="listViewThS1">&nbsp;&nbsp; <a href="add-property-contact.php" class="lightwindow page-options n">Add New</a></span></td>
+                  </tr>
+                  <? 
+						$sqlcontact = "SELECT contact.* FROM contact_to_property inner join contact on contact_to_property.contact_id=contact.id
+										WHERE contact_to_property.property_id=".$prow['id'];
+						$cresult = $db->query($sqlcontact) or die(mysql_error()." ".$sqlcontact);
+						if($db->getNumRows($cresult) >= 1){
+							while($crow = $db->fetchArray($cresult)){
+								$typesql = "SELECT phone.*, types.name as typename FROM phone left join types on phone.type=types.id 
+															WHERE phone.contact_id=".$crow['id'];
+								$tresult = $db->query($typesql) or die($typesql);
+								$phonenumbers = '';
+								while($trow=$db->fetchArray($tresult)){
+									$phonenumbers .= CheckUSPhoneNum($trow['number']);
+									if($trow['ext'] != '0')
+										$phonenumbers.=' ext:'.$trow['ext'];
+									if($trow['typename'] != '')
+										$phonenumbers.=' ('.$trow['typename'].')';
+									$phonenumbers .= '<br>';
+								}
+							
+					?>
+                  <tr height="20">
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><a href="view-property-contact.php?c=<?=$crow['id']?>" class="lightwindow page-options n"><?php if($crow['firstname'] != '0') echo $crow['firstname']; ?> <?php if($crow['lastname'] != '0') echo $crow['lastname']; ?></a></td>
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($crow['email'] != '0') echo $crow['email']; ?></td>
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($phonenumbers != '0') echo $phonenumbers; ?></td>
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($crow['notes'] != '0') echo $crow['notes']; ?></td>
+                    <td width="13%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="edit-property-contact.php?id=<?=$crow['id']?>" class="lightwindow page-options n">Edit</a></td>
+                  </tr>
+                  <? }
+					}else{?>
+                  <tr height="20">
+                    <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                    <td width="29%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"></td>
+                    <td width="13%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                  </tr>
+                  <? }?>
+                </table></td>
+      </tr>
+    </table>
+	<br />
+  </div><? 
+		//Select Location information related to property
+		$locqry = "SELECT * FROM location WHERE property_id=".$prow['id'];
+		$lresult = $db->query($locqry) or die($locqry);
+		$lrow = $db->fetchArray($lresult);
+		?>
+        
+		<div>
+			<table width="100%"><tr><td align="right"><? if($ifexist >= 1){?><a href="editproperty.php?id=<?=$prow['id']?>" class="utilsLink">Edit</a><? }?></td></tr></table>
+			<table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    
+                                    <tr>
+                                      <td align="left" valign="top" class="newhead">Location Info</td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+                <tr>
+                  <td align="right" class="bodytext">License:</td>
+                  <td class="formtxt"><? if($lrow['license'] == 1) echo 'Yes'; else echo 'No';?></td>
+                  <td align="right" class="bodytext">Sq Feet: </td>
+                  <td class="formtxt"><?php if($lrow['squarefit'] != '0') echo $lrow['squarefit']; ?></td>
+                  <td align="right" class="bodytext">Areas off limit: </td>
+                  <td class="formtxt"><?php if($lrow['limitareas'] != '0') echo $lrow['limitareas']; ?></td>
+                </tr>
+                <tr>
+                  <td align="right" class="bodytext">Neighbors:</td>
+                  <td class="formtxt"><?php if($lrow['neighbors'] != '0') echo $lrow['neighbors']; ?></td>
+                  <td align="right" class="bodytext">Animals:</td>
+                  <td class="formtxt"><?php if($lrow['animals'] != '0') echo $lrow['animals']; ?></td>
+                  <td align="right" class="bodytext">Date Built: </td>
+                  <td class="formtxt"><?php if($lrow['datebuilt'] != '0') echo $lrow['datebuilt']; ?></td>
+                </tr>
+                <tr>
+                  <td align="right" class="bodytext">Previous Filming:</td>
+                  <td class="formtxt"><?php if($lrow['previousfilming'] != '0') echo $lrow['previousfilming']; ?></td>
+                  <td align="right" class="bodytext">Parking:</td>
+                  <td class="formtxt"><?php if($lrow['parking'] != '0') echo $lrow['parking']; ?></td>
+                  <td align="right" class="bodytext">Bedroom Count: </td>
+                  <td class="formtxt"><?php if($lrow['bedroom'] != '0') echo $lrow['bedroom']; ?></td>
+                </tr>
+                <tr>
+                  <td align="right" class="bodytext">Restroom Count: </td>
+                  <td class="formtxt"><?php if($lrow['restroom'] != '0') echo $lrow['restroom']; ?></td>
+                  <td align="right" class="bodytext">Referal Form: </td>
+                  <td colspan="3" class="formtxt"><?php if($lrow['referalform'] != '0') echo $lrow['referalform']; ?></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">Features:</td>
+                  <td colspan="5"><label>
+                    <input name="txtadultfriendly" type="checkbox" id="txtadultfriendly" <? if($lrow['adultfriendly'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Adult Friendly
+                    <input name="txtpool" type="checkbox" id="txtpool" value="1" <? if($lrow['pool'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Pool
+                    <input name="txttennisecourt" type="checkbox" id="txttennisecourt" value="1" <? if($lrow['tennisecourt'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Tennis Court
+                    <input name="txtcityview" type="checkbox" id="txtcityview" value="1" <? if($lrow['cityview'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    City View
+                    <input name="txtnicebackyard" type="checkbox" id="txtnicebackyard" value="1" <? if($lrow['nicebackyard'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Nice Backyard
+                    <input name="txthomeassociation" type="checkbox" id="txthomeassociation" value="1" <? if($lrow['homeassociation'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Home Association</label></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">Architect:</td>
+                  <td class="formtxt"><?php if($lrow['architect'] != '0') echo $lrow['architect']; ?></td>
+                  <td align="right" class="bodytext">House Name: </td>
+                  <td colspan="3" class="formtxt"><?php if($lrow['housename'] != '0') echo $lrow['housename']; ?></td>
+                  </tr>
+                <tr>
+                  <td align="right" class="bodytext">&nbsp;</td>
+                  <td colspan="5" class="formtxt"><label>
+                    <input name="txtnewpropertyowner" type="checkbox" id="txtnewpropertyowner" <? if($lrow['newpropertyowner'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    Find New Property Owner
+                    <input name="txtfilmingorevents" type="checkbox" id="txtfilmingorevents" <? if($lrow['filmingorevents'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                    No Longer For Filming or Events</label></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" align="left" class="bodytext"><div id="notes4">
+				  <? 
+				  	$type = 1;
+					$property_id = $prow['id'];
+				  ?>
+				  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                    <tr bgcolor="#E1E1E1" height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a"> Notes&nbsp;&nbsp; </div></td>
+                      <td width="11%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">User&nbsp;&nbsp; </div></td>
+                      <td width="14%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">Date Modified&nbsp;&nbsp; </div></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><span class="a">Action</span>&nbsp;&nbsp; <a href="#" onclick="window.open('detailnotes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Add New</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? 
+						$sqlnotes = "SELECT * FROM notes WHERE type=".$type." and property_id=".$prow['id'];
+						$nresult = $db->query($sqlnotes) or die(mysql_error()." ".$sqlnotes);
+						if($db->getNumRows($nresult) >= 1){
+						while($nrow = $db->fetchArray($nresult)){
+							if($nrow['userid'] == '')
+								$nrow['userid'] = 1;
+					?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($nrow['text'] != '0') echo $nrow['text']; ?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=ReturnName('user','username','id',$nrow['userid'])?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=date("m/d/Y",strtotime($nrow['datentime']))?></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('detailnotes.php?id=<?=$nrow['id']?>&amp;property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=2','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Edit</a> | <a href="#" onclick="if(confirm('Are you sure want to delete this notes?')){deleteNotes('<?=$nrow['id']?>','<?=$type?>','<?=$property_id?>');return false;}else{return false};" class="n">Delete</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }
+					}else{?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('notes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n"></a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }?>
+                  </table>
+                  </div></td>
+                  </tr>
+              </table></td>
+                                    </tr>
+                                </table> <br />	
+								</div>
+		<? 
+		//Select Budget information related to property
+		$bdqry = "SELECT * FROM budget WHERE property_id=".$prow['id'];
+		$bresult = $db->query($bdqry) or die($bdqry);
+		$brow = $db->fetchArray($bresult);
+		?>
+       
+		<div>
+		  <table width="100%">
+		    <tr>
+		      <td align="right"><? if($ifexist >= 1){?>
+		          <a href="editproperty.php?id=<?=$prow['id']?>" class="utilsLink">Edit</a>
+		        <? }?></td>
+		      </tr>
+		    </table>
+		  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    
+                                    <tr>
+                                      <td align="left" valign="top" class="newhead">Budget Info</td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" bgcolor="#FFFFFF" class="formtxt">
+                <!--<tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%" class="formtxt"><label>
+                        <input name="txthighbudget" type="checkbox" id="txthighbudget" <? if($brow['highbudget'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        High Budget
+                        <input name="txtmediumbudget" type="checkbox" id="txtmediumbudget" <? if($brow['mediumbudget'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Mid Budget
+                        <input name="txtlowbudget" type="checkbox" id="txtlowbudget" <? if($brow['lowbudget'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Low Budget</label></td>
+                    </tr>
+                  </table></td>
+                  </tr>-->
+                <tr>
+                  <td width="16%" align="right" class="bodytext">Budget Notes :</td>
+                  <td width="84%" colspan="5" class="formtxt"><?=$brow['budgetnotes']?></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" class="formtxt"><strong>Film Information </strong></td>
+                  </tr>
+                <tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%" class="formtxt"><label>
+                        <input name="txtfilmfriendly" type="checkbox" id="txtfilmfriendly" <? if($brow['filmfriendly'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Film Friendly
+                        <input name="txtinteriorfilming" type="checkbox" id="txtinteriorfilming" <? if($brow['interiorfilming'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Interior Filming
+                        <input name="txtexteriorfilming" type="checkbox" id="txtexteriorfilming" <? if($brow['exteriorfilming'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Exterior Filming </label></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+
+                <tr>
+                  <td colspan="6" align="right" class="bodytext"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="17%" align="right" bgcolor="#FFFFFF" class="bodytext">Avg. Film Budget:</td>
+                      <td width="21%" align="left" bgcolor="#FFFFFF" class="formtxt"><?php if($brow['filmbudget'] != '0') echo $brow['filmbudget']; ?></td>
+                      <td width="17%" align="right" bgcolor="#FFFFFF" class="bodytext">Max Head Count:</td>
+                      <td width="18%" align="left" bgcolor="#FFFFFF" class="formtxt"><?php if($brow['filmmaxheat'] != '0') echo $brow['filmmaxheat']; ?></td>
+                      <td width="10%" align="right" bgcolor="#FFFFFF" class="bodytext">Film Parking: </td>
+                      <td width="17%" align="left" bgcolor="#FFFFFF" class="formtxt"><?php if($brow['filmparking'] != '0') echo $brow['filmparking']; ?></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" align="left" class="bodytext"><div id="notes5">
+				  <? 
+				  	$type = 2;
+					$property_id = $prow['id'];
+				  ?>
+				  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                    <tr bgcolor="#E1E1E1" height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a"> Notes&nbsp;&nbsp; </div></td>
+                      <td width="11%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">User&nbsp;&nbsp; </div></td>
+                      <td width="14%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">Date Modified&nbsp;&nbsp; </div></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><span class="a">Action</span>&nbsp;&nbsp; <a href="#" onclick="window.open('detailnotes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Add New</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? 
+						$sqlnotes = "SELECT * FROM notes WHERE type=".$type." and property_id=".$prow['id'];
+						$nresult = $db->query($sqlnotes) or die(mysql_error()." ".$sqlnotes);
+						if($db->getNumRows($nresult) >= 1){
+						while($nrow = $db->fetchArray($nresult)){
+							if($nrow['userid'] == '')
+								$nrow['userid'] = 1;
+					?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($nrow['text'] != '0') echo $nrow['text']; ?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=ReturnName('user','username','id',$nrow['userid'])?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=date("m/d/Y",strtotime($nrow['datentime']))?></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('detailnotes.php?id=<?=$nrow['id']?>&amp;property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=2','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Edit</a> | <a href="#" onclick="if(confirm('Are you sure want to delete this notes?')){deleteNotes('<?=$nrow['id']?>','<?=$type?>','<?=$property_id?>');return false;}else{return false};" class="n">Delete</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }
+					}else{?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('detailnotes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n"></a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }?>
+                  </table>
+                  </div></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" class="formtxt"><strong>Events Information </strong></td>
+                </tr>
+                <tr>
+                  <td colspan="6"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="10%">&nbsp;</td>
+                      <td width="90%" class="formtxt"><label>
+                        <input name="txteventfriendly" type="checkbox" id="txteventfriendly" <? if($brow['eventfriendly'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Event Friendly
+                        <input name="txtinteriorevent" type="checkbox" id="txtinteriorevent" <? if($brow['interiorevent'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Interior Events
+                        <input name="txtexteriorevent" type="checkbox" id="txtexteriorevent" <? if($brow['exteriorevent'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+                        Exterior Events </label></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" align="right" class="bodytext"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="17%" align="right" bgcolor="#FFFFFF" class="bodytext">Avg. Event Budget:</td>
+                      <td width="21%" align="left" bgcolor="#FFFFFF" class="formtxt"><?php if($brow['eventbudget'] != '0') echo $brow['eventbudget']; ?></td>
+                      <td width="16%" align="right" bgcolor="#FFFFFF" class="bodytext">Max Head Count:</td>
+                      <td width="18%" align="left" bgcolor="#FFFFFF" class="formtxt"><?php if($brow['eventmaxheat'] != '0') echo $brow['eventmaxheat']; ?></td>
+                      <td width="11%" align="right" bgcolor="#FFFFFF" class="bodytext">Event Parking: </td>
+                      <td width="17%" align="left" bgcolor="#FFFFFF" class="formtxt"><?php if($brow['eventparking'] != '0') echo $brow['eventparking']; ?></td>
+                    </tr>
+                  </table></td>
+                  </tr>
+                <tr>
+                  <td colspan="6" align="left" class="bodytext"><div id="notes6">
+				  <? 
+				  	$type = 3;
+					$property_id = $prow['id'];
+				  ?>
+				  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                    <tr bgcolor="#E1E1E1" height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a"> Notes&nbsp;&nbsp; </div></td>
+                      <td width="11%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">User&nbsp;&nbsp; </div></td>
+                      <td width="14%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap; float:left" width="100%" align="left" class="a">Date Modified&nbsp;&nbsp; </div></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><span class="a">Action</span>&nbsp;&nbsp; <a href="#" onclick="window.open('detailnotes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Add New</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? 
+						$sqlnotes = "SELECT * FROM notes WHERE type=".$type." and property_id=".$prow['id'];
+						$nresult = $db->query($sqlnotes) or die(mysql_error()." ".$sqlnotes);
+						if($db->getNumRows($nresult) >= 1){
+						while($nrow = $db->fetchArray($nresult)){
+							if($nrow['userid'] == '')
+								$nrow['userid'] = 1;
+					?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="3" nowrap="nowrap" class="listViewThS1" scope="col"><?php if($nrow['text'] != '0') echo $nrow['text']; ?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=ReturnName('user','username','id',$nrow['userid'])?></td>
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><?=date("m/d/Y",strtotime($nrow['datentime']))?></td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('detailnotes.php?id=<?=$nrow['id']?>&amp;property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=2','noteswin','height=190,width=310,scrollbars=0');return false;" class="n">Edit</a> | <a href="#" onclick="if(confirm('Are you sure want to delete this notes?')){deleteNotes('<?=$nrow['id']?>','<?=$type?>','<?=$property_id?>');return false;}else{return false};" class="n">Delete</a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }
+					}else{?>
+                    <tr height="20">
+                      <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                      <td height="25" colspan="5" nowrap="nowrap" class="listViewThS1" scope="col">No record exists.</td>
+                      <td width="10%" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><a href="#" onclick="window.open('detailnotes.php?property_id=<?=$prow['id']?>&amp;type=<?=$type?>&amp;op=1','noteswin','height=190,width=310,scrollbars=0');return false;" class="n"></a> </td>
+                      <td width="2%" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                    </tr>
+                    <? }?>
+                  </table>
+                  </div></td>
+                  </tr>
+              </table></td>
+                                    </tr>
+                                </table><br />
+								</div>
+		<?
+		//Select Tax information related to property
+		$tqry = "SELECT * FROM tax WHERE property_id=".$prow['id'];
+		$tresult = $db->query($tqry) or die($tqry);
+		$trow = $db->fetchArray($tresult);
+		?>
+		<div>
+		  <table width="100%">
+		    <tr>
+		      <td align="right"><? if($ifexist >= 1){?>
+		          <a href="editproperty.php?id=<?=$prow['id']?>" class="utilsLink">Edit</a>
+		        <? }?></td>
+		      </tr>
+		    </table>
+		  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                    
+                                    <tr>
+                                      <td align="left" valign="top" class="newhead">Tax Info</td>
+                                    </tr>
+                                    <tr>
+                                      <td align="left" valign="top" class="border2"><table width="100%" border="0" cellpadding="2" cellspacing="0" class="formtxt">
+											<tr>
+											  <td align="right" class="bodytext">Tax Company:</td>
+											  <td class="formtxt"><?php if($trow['company'] != '0') echo $trow['company']; ?></td>
+											  <td align="right" class="bodytext">Taxt First Name: </td>
+											  <td class="formtxt"><?php if($trow['firstname'] != '0') echo $trow['firstname']; ?></td>
+											  <td align="right" class="bodytext">Tax Last Name: </td>
+											  <td class="formtxt"><?php if($trow['lastname'] != '0') echo $trow['lastname']; ?></td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax Address:</td>
+											  <td class="formtxt"><?php if($trow['address'] != '0') echo $trow['address']; ?></td>
+											  <td align="right" class="bodytext">Tax Address2:</td>
+											  <td class="formtxt"><?php if($trow['address2'] != '0') echo $trow['address2']; ?></td>
+											  <td align="right" class="bodytext">Tax City: </td>
+											  <td class="formtxt"><?php if($trow['city'] != '0') echo $trow['city']; ?></td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax State:</td>
+											  <td class="formtxt"><?php if($trow['state'] != '0') echo $trow['state']; ?></td>
+											  <td align="right" class="bodytext">Tax Zipcode:</td>
+											  <td class="formtxt"><?php if($trow['zipcode'] != '0') echo $trow['zipcode']; ?></td>
+											  <td align="right" class="bodytext">&nbsp;</td>
+											  <td>&nbsp;</td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax Amount:</td>
+											  <td colspan="5" class="formtxt"><label>$ 
+												<?php if($trow['amount'] != '0') echo $trow['amount']; ?>
+											  </label></td>
+											</tr>
+											<tr>
+											  <td align="right" class="bodytext">Tax Notes1:</td>
+											  <td class="formtxt"><?php if($trow['notes1'] != '0') echo $trow['notes1']; ?></td>
+											  <td align="right" class="bodytext">Tax Notes2:  </td>
+											  <td colspan="3" class="formtxt"><?php if($trow['notes2'] != '0') echo $trow['notes2']; ?></td>
+										    </tr>
+											<tr>
+											  <td align="right">&nbsp;</td>
+											  <td colspan="5" class="formtxt"><label>
+												<input name="txtmailtaxes" type="checkbox" id="txtmailtaxes" <? if($trow['mailtaxes'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+												Do Not Mail Taxes
+												<input name="txtquestionable" type="checkbox" id="txtquestionable" <? if($trow['questionable'] == 1){?> checked="checked" <? }?> disabled="disabled"/>
+												Questionable</label></td>
+											</tr>
+										  </table></td>
+                                    </tr>
+                                </table><br />
+							</div>
+							<div>
+								<?php
+								if(in_array($checkUsername, $allowUsers)){
+									mysql_select_db("planitlo_locations");
+									$propLoc = $prow['property_id'];
+									$sqlThumbs = "SELECT prop_domain_loc, prop_loc, tn_domain_loc, thumb01, thumb02, thumb03 FROM prop_info WHERE prop_loc = '".$propLoc."'";
+									if($resultThumbs = mysql_query($sqlThumbs)){
+										$rowThumbs = mysql_fetch_array($resultThumbs);
+										$domain = $rowThumbs['tn_domain_loc'];
+										$thumb1 = $rowThumbs['thumb01'];
+										$thumb2 = $rowThumbs['thumb02'];
+										$thumb3 = $rowThumbs['thumb03'];
+										$url = $rowThumbs['prop_domain_loc'];
+										$prop_loc = $rowThumbs['prop_loc'];
+									}else{
+										echo mysql_error();
+									}
+									$sqlSorting = "SELECT * FROM sorting WHERE prop_loc = '".$propLoc."'";
+									if($resultSorting = mysql_query($sqlSorting)){
+
+									}else{
+										echo mysql_error();
+									}
+									mysql_select_db('planitlo_locations');
+									$checkifExist = "SELECT prop_loc FROM prop_info WHERE prop_loc = '".strtolower($prow['property_id'])."'";
+									if($resCheckIfExist = mysql_query($checkifExist)){
+										if(mysql_num_rows($resCheckIfExist) > 0){
+											$countExist = 1;
+										}else{
+											$countExist = 0;
+										}
+									}else{
+										echo mysql_error();
+									}
+									//echo mysql_num_rows($resCheckIfExist);
+									mysql_select_db('planitlo_crm');
+									if($countExist == 1){
+										?>
+										<input type="hidden" value="<?php echo $prop_loc ?>" id="hidPropLoc1" />
+										<table border="0" cellpadding="3" cellspacing="0" class="listview" style='border-color: #2278A9; width: 100%' width="913">
+											<tr bgcolor="#d0e1f4" height="20">
+												<td height="25" scope="col" class="listViewThS1" colspan="6" style="border-bottom: 1px solid #2278A9">
+													<div align="left" class="a" width="100%" style="white-space: nowrap; float: left;">
+														&nbsp;&nbsp;Categories and sorting
+													</div>
+												</td>
+											</tr>
+											<tr>
+												<td colspan="6">
+											
+													<a style="text-decoration: none;" href="<?php echo $url.$prop_loc.'/index.php?id='.$prop_loc.'&id2=&id3=&id4=&id5=&id6=&id7=&id8=&id9=&id10=' ?>" target="_blank">
+														<?php 
+														if(!empty($domain)){
+															if(!empty($thumb1)){
+																?><img style="border-style: none;" src="<?php echo $domain.$thumb1 ?>" alt="" />&nbsp;&nbsp;<?php 
+															}
+															if(!empty($thumb2)){
+																?><img style="border-style: none;" src="<?php echo $domain.$thumb2 ?>" alt="" />&nbsp;&nbsp;<?php 
+															}
+															if(!empty($thumb3)){
+																?><img style="border-style: none;" src="<?php echo $domain.$thumb3 ?>" alt="" />&nbsp;&nbsp;<?php 
+															}
+														}
+														?>
+													</a>
+												</td>
+											</tr>
+											<tr>
+												<td colspan="6">
+													<b>Add property to new category</b>
+												</td>
+											</tr>
+											<tr>
+												<td width="150" colspan="6">
+													Category &nbsp;
+													<input type="text" id="txtNewCategory1" style="width: 138px;" />&nbsp;
+													Sorting&nbsp;
+													<input type="text" id="txtNewPriority1" style="width: 50px;" />&nbsp;
+													<?php if(in_array($checkUsername, $allowUsers)){ ?>
+														<span id="saveCheckCat1" style="cursor: pointer">Check category</span>&nbsp;&nbsp;
+														<span id="saveNewSorting1" style="cursor: pointer">Save</span>
+													<?php } ?>
+												</td>
+											</tr>
+											<tr>
+												<td width="150"><b>Category</b></td>
+												<td width="150"><b>Sorting</b></td>
+												<td width="150"><b>New sorting</b></td>
+												<td width="150"><!-- <b>Website page number</b> --></td>
+												<td width="150"><!-- <b>Link to website</b> --></td>
+												<td width="150"></td>
+											</tr>
+											<?php
+											$whatClass = 0;
+											while($rowSorting = mysql_fetch_array($resultSorting)){
+												$whatClass++;
+												if($whatClass == 1){
+													$showClass = "visibleRow1";
+												}else{
+													$showClass = "hiddenRow1";
+												}
+												?>
+												<tr class="<?php echo $showClass ?>">
+													<td class="listViewThS1">
+														<a href="https://planitlocations.com/search/search.php?cat=<?php echo $rowSorting['category1'] ?>" target="_blank">
+															<?php echo $rowSorting['category1'] ?>
+														</a>
+													</td>
+													<td class="listViewThS1">
+														<span id="span1<?php echo $rowSorting['ID']; ?>" class="spanPriority1">
+															<?php echo $rowSorting['Priority']; ?>
+														</span>
+														<input type="text" value="<?php echo $rowSorting['Priority']; ?>" id="txt1<?php echo $rowSorting['ID']; ?>" class="txtPriority1" style="width:65px; height: 12px;"/>
+													</td>
+													<td class="listViewThS1">
+														<?php 
+														$sqlNewSort = "SELECT * FROM sortings WHERE cat_name = '".$rowSorting['category1']."'";
+														if($resultNewSort = mysql_query($sqlNewSort)){
+															$rowNewSort = mysql_fetch_array($resultNewSort);
+															$arrNewSort = explode(',', $rowNewSort['sorting']);
+															$count = 0;
+															$fullCatName = $propLoc." <~Property ID";
+															foreach($arrNewSort as $newSort){
+																$count++;
+																if($fullCatName == $newSort){
+																	break;
+																}
+															}
+															if($count == "1"){
+																echo "Not sortet yet.";
+															}else{
+																echo $count;
+															}
+															
+														}
+														?>
+													</td>
+													<?php if(in_array($checkUsername, $allowUsers)){ ?>
+														<td class="listViewThS1">
+															<span id="save1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editSave1">Save | </span>
+															<span id="cancel1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editCancel1">Cancel | </span>
+															<span id="edit1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editSort1">Edit | </span>
+															<span id="delete1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editDelete1">Delete</span>
+														</td>
+													<?php } ?>
+													<td class="listViewThS1"></td>
+													<td class="listViewThS1"></td>
+												</tr>
+												<?php 
+											}
+											?>
+											<tr id="rowShowAll1">
+												<td><span style="cursor: pointer; display: none;" id="btnShowAll1">Show all categories</span></td>
+											</tr>
+											<tr id="rowHideAll1">
+												<td><span style="cursor: pointer; display: none;" id="btnHideAll1">Hide all categories</span></td>
+											</tr>
+										</table>
+										<?php 
+									}else{
+										?>
+										<table border="0" cellpadding="3" cellspacing="0" class="listview" width="913">
+											<tr bgcolor="#d0e1f4" height="20">
+												<td height="25" scope="col" class="listViewThS1" colspan="6">
+													<div align="left" class="a" width="100%" style="white-space: nowrap; float: left;">
+														&nbsp;&nbsp;Categories and sorting - Please go to 'Website Data' tab first and save a record.
+													</div>
+												</td>
+											</tr>
+										</table>
+										<?php 
+									}
+								}
+								?>
+							</div>
+							<br />
+						</div></td>
+                        </tr>
+                       </table>
+					  </div>			
+					  <? }else{?>
+                    <span class="bodttxt">No Property Found.</span>                    <? }?></td>
+                </tr>
+            </table></td>
+          </tr>
+		  </table></td>
+		</tr>
+	</table>
+	</td></tr></tbody></table></td></tr></tbody></table>
+<? include("footer.php");?>
+</body>
+</html>
+<script type="text/javascript" src="js/jquery-ui-1.8.custom.js"></script>
+<script type="text/javascript" src="js/jquery.ui.autocomplete.js"></script>
+<script type="text/javascript">
+jQuery(document).ready(function() {
+	jQuery("#btnHideAll").hide();
+	jQuery(".cb1").click(function () { 
+		jQuery.post("updateCbField.php", { 
+				id: jQuery(this).attr("id"),
+				checked: jQuery(this).attr("checked")
+			},function(data){
+				//alert(data);
+		});
+	});
+	jQuery(".hiddenRow").each(function() {
+		//jQuery(this).hide();
+	});
+	
+	jQuery(".txtPriority").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editCancel").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editSave").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery("#btnShowAll").click(function () { 
+		jQuery("#rowShowAll").hide();
+		jQuery("#btnHideAll").show();
+		jQuery(".hiddenRow").each(function() {
+			jQuery(this).show();
+		});
+	});
+	
+	jQuery("#btnHideAll").click(function () { 
+		jQuery("#rowShowAll").show();
+		jQuery("#btnHideAll").hide();
+		jQuery(".hiddenRow").each(function() {
+			jQuery(this).hide();
+		});
+	});
+	
+	jQuery(".editSort").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(4);
+		jQuery("#txt"+id).show();
+		jQuery("#save"+id).show();
+		jQuery("#span"+id).hide();
+		jQuery("#cancel"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editCancel").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(6);
+		jQuery("#txt"+id).hide();
+		jQuery("#save"+id).hide();
+		jQuery("#span"+id).show();
+		jQuery("#edit"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editSave").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(4);
+		
+		jQuery.post("ajaxV.php", { 
+				id: id,
+				task: "saveNewSorting",
+				value: jQuery("#txt"+id).val()
+			},function(data){
+				jQuery("#span"+id).html(data);
+				jQuery("#txt"+id).val(data);
+		});
+		
+		jQuery("#txt"+id).hide();
+		jQuery("#cancel"+id).hide();
+		jQuery("#span"+id).show();
+		jQuery("#edit"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editDelete").click(function () { 
+		var r=confirm("Do You want to delete this record?");
+		if (r==true){
+			var id = jQuery(this).attr("id");
+			id = id.substr(6);
+			jQuery.post("ajaxV.php", { 
+					id: id,
+					task: "deleteSorting"
+				},function(data){
+				//alert(data);
+				window.location.reload();
+			});
+		}
+	});
+	
+	jQuery("#txtNewCategory").autocomplete({
+		source: "autocomplete.php",
+		minLength: 3
+	});
+	
+	jQuery("#saveNewSorting").click(function () { 
+		var category = jQuery("#txtNewCategory").val();
+		var sorting =  jQuery("#txtNewPriority").val();
+		var propLoc =  jQuery("#hidPropLoc").val();
+		if((category != "") && (sorting != "")){
+			jQuery.post("ajaxV.php", { 
+					propLoc: propLoc,
+					task: "addSorting",
+					category: category,
+					sorting: sorting
+				},function(data){
+					//alert(data);
+					window.location.reload();
+			});
+		}
+	})
+	
+	
+	//jquery for the all tab for website. 
+	jQuery("#btnHideAll1").hide();
+
+	jQuery(".hiddenRow1").each(function() {
+		//jQuery(this).hide();
+	});
+	
+	jQuery(".txtPriority1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editCancel1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editSave1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery("#btnShowAll1").click(function () { 
+		jQuery("#rowShowAll1").hide();
+		jQuery("#btnHideAll1").show();
+		jQuery(".hiddenRow1").each(function() {
+			jQuery(this).show();
+		});
+	});
+	
+	jQuery("#btnHideAll1").click(function () { 
+		jQuery("#rowShowAll1").show();
+		jQuery("#btnHideAll1").hide();
+		jQuery(".hiddenRow1").each(function() {
+			jQuery(this).hide();
+		});
+	});
+	
+	jQuery(".editSort1").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(5);
+		jQuery("#txt1"+id).show();
+		jQuery("#save1"+id).show();
+		jQuery("#span1"+id).hide();
+		jQuery("#cancel1"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editCancel1").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(7);
+		jQuery("#txt1"+id).hide();
+		jQuery("#save1"+id).hide();
+		jQuery("#span1"+id).show();
+		jQuery("#edit1"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editSave1").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(5);
+		
+		jQuery.post("ajaxV.php", { 
+				id: id,
+				task: "saveNewSorting",
+				value: jQuery("#txt1"+id).val()
+			},function(data){
+				jQuery("#span1"+id).html(data);
+				jQuery("#txt1"+id).val(data);
+		});
+		
+		jQuery("#txt1"+id).hide();
+		jQuery("#cancel1"+id).hide();
+		jQuery("#span1"+id).show();
+		jQuery("#edit1"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editDelete1").click(function () { 
+		var r=confirm("Do You want to delete this record?");
+		if (r==true){
+			var id = jQuery(this).attr("id");
+			id = id.substr(7);
+			jQuery.post("ajaxV.php", { 
+					id: id,
+					task: "deleteSorting"
+				},function(data){
+				window.location.reload();
+			});
+		}
+	});
+	
+	jQuery("#txtNewCategory1").autocomplete({
+		source: "autocomplete.php",
+		minLength: 3
+	});
+	
+	jQuery("#saveNewSorting1").click(function () { 
+		var category = jQuery("#txtNewCategory1").val();
+		var sorting =  jQuery("#txtNewPriority1").val();
+		var propLoc =  jQuery("#hidPropLoc1").val();
+		if((category != "") && (sorting != "")){
+			jQuery.post("ajaxV.php", { 
+					propLoc: propLoc,
+					task: "addSorting",
+					category: category,
+					sorting: sorting
+				},function(data){
+					//alert(data);
+					window.location.reload();
+			});
+		}
+	})
+	
+	jQuery(".deleteToLoc").click(function () { 
+		if(jQuery("#exist").val() != ''){
+			var r=confirm("Do You want to delete this record?");
+			if (r==true){
+				jQuery.post("ajaxV.php", { 
+						propLoc: jQuery("#exist").val(),
+						task: "deleteToLoc"
+					},function(data){
+						//alert(data);
+						window.location.reload();
+				});
+			}
+		}
+	})
+	
+	jQuery(".clearValue").click(function () { 
+		jQuery(this).parent().prev().children().val("");
+	})
+	
+	jQuery("#saveCheckCat").click(function () { 
+		if(jQuery("#txtNewCategory").val() != ""){
+			var category = jQuery("#txtNewCategory").val();
+			var url = "https://planitlocations.com/crm/checkCategory.php?cat=" + category;
+			new_win = window.open(url,'_blank'); 
+		}
+	})
+	
+	jQuery("#saveCheckCat1").click(function () { 
+		if(jQuery("#txtNewCategory1").val() != ""){
+			var category = jQuery("#txtNewCategory1").val();
+			var url = "https://planitlocations.com/crm/checkCategory.php?cat=" + category;
+			new_win = window.open(url,'_blank'); 
+		}
+	})
+	
+	jQuery("#addMissing").click(function () { 
+		var r=confirm("This will insert the two missing columns in database. Use this only if you have overwritted the database with new access file.");
+		if (r==true){
+			jQuery.post("ajaxV.php", { 
+					task: "addMissing"
+				},function(data){
+					//alert(data);
+					if(data == "okokok"){
+						window.location.reload();
+					}else{
+						alert("Columns already exist.");
+					}
+			});
+		}
+	})
+	
+})
+</script>

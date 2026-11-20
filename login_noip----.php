@@ -1,0 +1,119 @@
+<? 
+	include('include/config.php');
+	session_start();
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<script src="js/prototype.js"></script>
+<script>
+function verifyinput(){
+	if(document.getElementById('txtusername').value == ""){
+		alert('Please Enter User Name');
+		document.getElementById('txtusername').focus();
+		return false;
+	}
+	if(document.getElementById('txtpassword').value == ""){
+		alert('Please Enter Password');
+		document.getElementById('txtpassword').focus();
+		return false;
+	}
+	url = '<?=APP_WEB_ROOT?>verifylogin.php?username='+document.getElementById('txtusername').value+'&password='+document.getElementById('txtpassword').value;
+	var er = $('errorlogin');
+	new Ajax.Request(url, {
+	method: 'get',
+	onSuccess: function(transport) {
+	if (transport.responseText == '1'){
+	  window.location= 'index.php';
+	}else if (transport.responseText == '2'){
+	  er.innerHTML = 'Your IP Address have been banned to login.';
+	}else{
+	  er.innerHTML = 'Username or Password is Incorrect.';
+	  return false;
+	  }
+	 },onFailure: function(){ alert('Error while performing AJAX request.') }
+    });
+	 return false;
+	 /*
+	if(document.getElementById('txtusername').value == ""){
+		alert('Please Enter User Name');
+		document.getElementById('txtusername').focus();
+		return false;
+	}
+	if(document.getElementById('txtpassword').value == ""){
+		alert('Please Enter Password');
+		document.getElementById('txtpassword').focus();
+		return false;
+	}
+	//url = '<?=APP_WEB_ROOT?>noip_verifylogin.php?username='+document.getElementById('txtusername').value+'&password='+document.getElementById('txtpassword').value;
+	url = '<?=APP_WEB_ROOT?>verifylogin.php?username='+document.getElementById('txtusername').value+'&password='+document.getElementById('txtpassword').value;
+	var er = $('errorlogin');
+	new Ajax.Request(url, {
+	method: 'get',
+	onSuccess: function(transport) {
+	if (transport.responseText == '1'){
+	  window.location= 'index.php';
+	}else{
+	  er.innerHTML = 'Username or Password is Incorrect.';
+	  return false;
+	  }
+	 },onFailure: function(){ alert('Error while performing AJAX request.') }
+    });
+	 return false; */
+}
+
+</script>
+</head>
+
+<body>
+<? include("header.php"); ?>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<table width="25%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap"><table width="25%" border="0" align="center" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Login</b> </td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top"><form id="form1" name="form1" method="post" action="">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="3">
+                      <tr>
+                        <td colspan="2" class="error"><div id="errorlogin"></div></td>
+                      </tr>
+                      <tr>
+                        <td width="41%" class="formtxt">Username</td>
+                        <td width="59%" align="left"><input name="txtusername" type="text" class="form" id="txtusername" maxlength="255" /></td>
+                      </tr>
+                      <tr>
+                        <td class="formtxt">Password</td>
+                        <td align="left"><input name="txtpassword" type="password" class="form" id="txtpassword" maxlength="255"/></td>
+                      </tr>
+                      <tr>
+                        <td>&nbsp;</td>
+                        <td align="left"><input name="Submit" type="submit" class="button" value="Login" onclick="return verifyinput();return verifylogin();return false;"/></td>
+                      </tr>
+                    </table>
+                                    </form>
+                  </td>
+                  </tr>
+            </table></td>
+          </tr>
+        </tbody>
+      </table></td>
+    </tr>
+  </tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<? include("footer.php");?>
+</body>
+</html>

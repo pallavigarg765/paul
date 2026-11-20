@@ -1,0 +1,319 @@
+<?php 
+mysql_connect("localhost", "root","Securel0gi!12aa");
+mysql_select_db("planitlo_crm");
+include "functions.php";
+if($_REQUEST['action']=='tag_view')
+{
+$property_id=$_REQUEST['property_id']; 
+$sql="SELECT DISTINCT(`tag_name`),`tag_id` FROM `tags` ORDER BY tag_name ASC";
+$exe=mysql_query($sql);
+
+$propertyTotags="SELECT * FROM `properties_tags_relationships` WHERE property_id='".$property_id."'";
+$propertyExe=mysql_query($propertyTotags);
+$tags=array();
+$i=0;
+while($rows=mysql_fetch_array($propertyExe))
+{
+	$tags[$i]=$rows['tag_id'];
+	$i=$i+1;
+}
+?>
+<div id="tagBlockDiv" class="tagBlockDiv">
+
+<span class="tagTtl">Search tags</span>  
+<input type="text" id="searchTags" class="searchTags" />
+<input type="hidden" name="propertyHiddenID" class="propertyHiddenID" id="propertyHiddenID_<?php echo $property_id; ?>" value="<?php echo $property_id; ?>" />
+<div id="tag_listID" class="heightN">
+<ul class="searchTagUl">
+<?php 
+while($v=mysql_fetch_array($exe))
+{
+?>
+	<li>
+		<label>
+			<input type="checkbox" value="<?php echo $v["tag_id"]; ?>" <?php if(in_array($v["tag_id"],$tags)==TRUE) { ?> checked <?php } ?> onclick="add_tags('<?php echo $property_id; ?>')" /><?php echo $v["tag_name"]; ?>
+		</label>
+	</li>	
+<?php
+}
+?>
+</ul>
+</div>
+	<div id="apply">
+		<a href="javascript:;" class="apply" id="doapply">Apply</a>
+	</div>
+</div>
+<?php 
+}
+?>
+
+<?php
+if($_REQUEST['action']=='search_tags')
+{
+$sql="SELECT DISTINCT(`tag_name`),`tag_id` FROM `tags` ";
+	if($_POST['type']=='search')
+	{
+		$sql.="WHERE tag_name LIKE '%".$_POST['searchTags']."%'";
+	}
+$sql.="ORDER BY tag_name ASC LIMIT 0,10";
+$exe=mysql_query($sql);
+$property_id=$_REQUEST['property_id']; 
+
+$propertyTotags="SELECT * FROM `properties_tags_relationships` WHERE property_id='".$property_id."'";
+$propertyExe=mysql_query($propertyTotags);
+$tags=array();
+$i=0;
+while($rows=mysql_fetch_array($propertyExe))
+{
+	$tags[$i]=$rows['tag_id'];
+	$i=$i+1;
+}
+?>
+<div id="tag_listID" class="heightN">
+<ul>
+<?php 
+if(mysql_num_rows($exe)>0)
+{
+	while($v=mysql_fetch_array($exe))
+	{
+	?>
+		<li value="<?php echo $v["tag_id"]; ?>"><input type="checkbox" value="<?php echo $v["tag_id"]; ?>" <?php if(in_array($v["tag_id"],$tags)==TRUE) { ?> checked <?php } ?> onclick="add_tags('<?php echo $property_id; ?>')"><?php echo $v["tag_name"]; ?></li>
+	<?php
+	}
+}
+else 
+{
+?>
+	<li>Tags not found.</li>
+<?php 	
+}
+?>
+</ul>
+</div>
+<?php 
+}
+?>
+<?php 
+if($_REQUEST['action']=='tag_apply')
+{
+
+	$tags=$_REQUEST['tags']; 
+	$propertyID=$_REQUEST['property_id'];
+	
+	$tagArray=explode(',',$tags);
+	if(count($tagArray)>0)
+	{
+		for($i=0;$i<count($tagArray);$i++)
+		{
+			$sql="SELECT * FROM properties_tags_relationships WHERE tag_id='".$tagArray[$i]."'  AND property_id='".$propertyID."'";
+			$exe=mysql_query($sql);
+			if(mysql_num_rows($exe)==0)
+			{
+				$tagsRelationshipsQuery="INSERT INTO properties_tags_relationships SET tag_id='".$tagArray[$i]."',
+																					property_id='".$propertyID."'";
+				mysql_query($tagsRelationshipsQuery);
+			}
+		}
+	}
+	echo loadTagsByPropertyID($propertyID);
+}
+?>
+<?php 
+if($_REQUEST['action']=='view_allTags')
+{
+	$sql="SELECT * FROM `tags` ORDER BY tag_name ASC";
+	$exe=mysql_query($sql);
+	?>
+	<div class="tagBlockDiv" style="width:100%;">
+		<ul class="tagEdtDel">
+		<?php 
+		while($rows=mysql_fetch_array($exe))
+		{			
+		?>
+			<li id="remForAjax_<?php echo $rows['tag_id']; ?>"><?php echo $rows['tag_name']; ?> <a href="javascript:;" id="del_<?php echo $rows['tag_id']; ?>" class="doDelete"><i class="fa fa-close"></i></a><a href="javascript:;" id="edit_<?php echo $rows['tag_id'];?>" class="doEdit"><i class="fa fa-pencil"></i></a></li>
+		<?php 
+		}
+		?>
+		</ul>
+	</div>
+<?php 
+}
+?>
+<?php 
+if($_REQUEST['action']=='edit')
+{
+	$tag_id=$_POST['tag_id'];
+	$sql="SELECT * FROM `tags` WHERE tag_id='".$tag_id."'";
+	$exe=mysql_query($sql);
+	$rows=mysql_fetch_array($exe);
+	
+	if($rows['is_child']!=0)
+	{
+		$p_sql="SELECT * FROM `tags` WHERE tag_id='".$rows['is_child']."'";  
+		$p_exe=mysql_query($p_sql);
+		$p_rows=mysql_fetch_array($p_exe);
+		$parent=$p_rows['tag_name']; 
+	}
+	else 
+	{
+		$parent='';
+	}
+	
+	echo json_encode(array(
+			'tag_id'=>$rows['tag_id'],
+			'tag_name'=>$rows['tag_name'],
+			'is_child'=>$rows['is_child'],
+			'tparent'=>$parent
+		));
+}
+?>
+<?php
+if($_REQUEST['action']=='actionEdit')
+{
+	$tag_id=$_POST['tag_id'];
+	$tag_name=$_POST['tag_name'];
+	$is_child=$_POST['is_child'];
+	
+	echo $sql="UPDATE `tags` SET tag_name='".$tag_name."', is_child='".$is_child."' WHERE tag_id='".$tag_id."'";
+	mysql_query($sql);
+}
+?>
+<?php 
+if(isset($_REQUEST["action"])&& $_REQUEST["action"]=="autocomplete")
+{
+	$tags=$_REQUEST['tags'];
+	$sql="SELECT DISTINCT(`tag_name`),`tag_id` FROM `tags` ";
+	if($tags!='')
+	{
+	$sql.="WHERE `tag_name` LIKE '%".$tags."%'";
+	}
+	$sql.="ORDER BY tag_name ASC";
+	$exe=mysql_query($sql);
+?>
+<div class="tagBlockDiv">
+	<div  class="heightN">
+		<ul>
+		<?php
+		if(mysql_num_rows($exe)>0)
+		{
+			while($v=mysql_fetch_array($exe))
+			{
+				$relToProperty="SELECT COUNT(`property_id`) AS no_of_property FROM `properties_tags_relationships` WHERE `tag_id`='".$v["tag_id"]."'";
+				$relExe=mysql_query($relToProperty);
+				$rows=mysql_fetch_array($relExe);
+			?>
+				<li class="addToSearch" id="addToTag_<?php echo $v["tag_id"]; ?>"><?php echo $v["tag_name"]; ?> &nbsp;(<?php echo $rows['no_of_property']; ?>)</li>
+			<?php
+			}
+		}
+		else 
+		{
+		?>
+			<li>No tags are available.</li>
+		<?php
+		}
+		?>
+		</ul>
+	</div>
+	<?php 
+	if(mysql_num_rows($exe)>0)
+	{
+	?>
+		<div>
+			<a href="javascript:;" onclick="manage_open();" class="manage_tag adTAG"><i class="fa fa fa-cog"></i> Manage tags</a>
+		</div>
+	
+	<?php 
+	}
+	?>
+</div>
+<?php 
+}
+?>
+<?php
+if($_REQUEST['oper']=='getSingleTag')
+{
+	$tag_id=$_POST['tag_id'];
+	
+	$sql="SELECT * FROM tags WHERE tag_id='".$tag_id."'";
+	$exe=mysql_query($sql);
+	$rows=mysql_fetch_array($exe);
+	
+	$relToProperty="SELECT COUNT(`property_id`) AS no_of_property FROM `properties_tags_relationships` WHERE `tag_id`='".$tag_id."'";
+	$relExe=mysql_query($relToProperty);
+	$relRowsCnt=mysql_fetch_array($relExe);
+?>
+	<div class="singleTag getID" id="getID_<?php echo $rows['tag_id']; ?>"><?php echo $rows['tag_name']; ?>
+		<span><?php echo $relRowsCnt['no_of_property']; ?></span>
+		<a  href="javascript:void(0);">
+			<span class="close" onclick="removedGetID(<?php echo $rows['tag_id']; ?>);">X</span>
+		</a>
+		<input type="hidden" name="hidTagIDArr[]" value="<?php echo $tag_id; ?>" />
+	</div>
+<?php 
+}
+?>
+<?php 
+if($_REQUEST['action']=='hierarchical')
+{
+$sel="SELECT * FROM `planitlo_crm`.`tags` WHERE `is_child`=0";
+$exe=mysql_query($sel);
+$mode=$_REQUEST['mode'];
+$tag_id=$_REQUEST['tag_id'];
+?>	
+<div class="selCatg">
+	<span id="sel_parent" class="sel_parent"></span>
+	<ul class="subSelCatg">
+	<?php 
+	while($rows=mysql_fetch_array($exe))
+	{
+	?>
+		<li class="tags">
+			<span id="tag_<?php echo $rows['tag_id']; ?>">
+				<?php echo $rows['tag_name']; ?>
+			</span>
+		<?php 
+			$sql="SELECT * FROM `planitlo_crm`.`tags` WHERE  `is_child`='".$rows['tag_id']."'";
+			$ex=mysql_query($sql);
+			if(mysql_num_rows($ex)>0)
+			{
+				is_child($rows['tag_id'],$mode,$tag_id);
+			}
+		?>
+		</li>	
+	<?php 
+	}
+	?>
+	</ul>
+</div>
+<?php 
+}
+?>
+<?php 
+if(isset($_REQUEST["oper"])&& $_REQUEST["oper"]=="add")
+{
+	$tag_name=$_REQUEST["tag_name"];	
+	$is_child = ($_REQUEST['is_child']!=0) ? $_REQUEST['is_child'] : 0;
+	if($tag_name!='')
+	{
+		$sql="SELECT * FROM `tags` WHERE tag_name='".$tag_name."'";
+		$exe=mysql_query($sql);
+		
+		if(mysql_num_rows($exe)>0)
+		{ 
+			$fetch=mysql_fetch_array($exe); 
+			$tag_id=$fetch["tag_id"];	
+		}
+		else 
+		{
+			echo $tag_insert="INSERT INTO `tags` SET `tag_name`='".$tag_name."',`is_child`='".$is_child."'";
+			$tag_exe=mysql_query($tag_insert);
+			$tag_id=mysql_insert_id();
+		}
+		echo $tag_id;
+	}
+}
+?>
+
+
+

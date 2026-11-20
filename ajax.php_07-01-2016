@@ -1,0 +1,80 @@
+<?php 
+mysql_connect("localhost", "root","Securel0gi!12aa");
+mysql_select_db("planitlo_crm");
+include "include/functions.php";
+if($_POST['action']=='prop_update')
+{
+	$propID=$_POST['propID'];
+	
+	$sel="SELECT is_show FROM property WHERE id='".$propID."'";
+	$ex=mysql_query($sel);
+	$fetch=mysql_fetch_array($ex);
+	
+	if($fetch['is_show']=='Y')
+	{
+		$sql="UPDATE  property SET is_show='N' WHERE id='".$propID."'";
+	}
+	else 
+	{
+		$sql="UPDATE  property SET is_show='Y' WHERE id='".$propID."'";
+	}
+	if($exe=mysql_query($sql))
+	{
+		echo "true";
+	}
+}
+if($_POST['action']=='delete_prop')
+{
+	$propID=$_POST['propID'];	
+	$sql="DELETE FROM property WHERE id='".$propID."'";
+	if($exe=mysql_query($sql))
+	{
+		echo "true";
+	}
+}
+if(isset($_REQUEST["oper"])&& $_REQUEST["oper"]=="add")
+{
+	$tag_name=$_REQUEST["tag_name"];	
+	$is_child = ($_REQUEST['is_child']!=0) ? $_REQUEST['is_child'] : 2;
+	if($tag_name!='')
+	{
+		$sql="SELECT * FROM `tags` WHERE tag_name='".$tag_name."'";
+		$exe=mysql_query($sql);
+		
+		if(mysql_num_rows($exe)>0)
+		{ 
+			$fetch=mysql_fetch_array($exe); 
+			$tag_id=$fetch["tag_id"];	
+		}
+		else 
+		{
+			echo $tag_insert="INSERT INTO `tags` SET `tag_name`='".$tag_name."',`is_child`='".$is_child."'";
+			$tag_exe=mysql_query($tag_insert);
+			$tag_id=mysql_insert_id();
+		}
+		echo $tag_id;
+	}
+	
+}
+if(isset($_REQUEST["oper"])&& $_REQUEST["oper"]=="remove")
+{
+	$relation_id=$_REQUEST["relation_id"];
+	$property_id=$_REQUEST["property_id"];
+
+	$sql="DELETE FROM properties_tags_relationships WHERE p_relation_id='".$relation_id."'";
+	mysql_query($sql);
+	
+	echo loadTagsByPropertyID($property_id);
+	
+}
+if(isset($_REQUEST["oper"])&& $_REQUEST["oper"]=="singleRem")
+{
+	$tag_id=$_REQUEST["tag_id"];
+	
+	$relSql="DELETE FROM properties_tags_relationships WHERE tag_id='".$tag_id."'";
+	mysql_query($relSql);
+	
+	$sql="DELETE FROM tags WHERE tag_id='".$tag_id."'";
+	mysql_query($sql);
+}
+?>

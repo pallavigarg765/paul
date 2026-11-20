@@ -1,0 +1,468 @@
+<? 
+	include('include/security.php');
+	include('include/dbcon.php');
+	include('include/functions.php');
+	$db = new DBConn();
+	
+	/*$nameorder = 'ASC';
+	$nameorder = 'arrow';
+	$idorder = 'ASC';
+	$idarrow = 'arrow';
+	$propertynameorder = 'ASC';
+	$propertynamearrow = 'arrow';
+*/	
+	$current_page = 'tags.php';
+	$criteria = "";
+	//$sql_list_query = "SELECT DISTINCT(T.tag_name),T.tag_id,T.color_code,C.category FROM `tags` AS T INNER JOIN `tag_categories` AS C ON C.id=T.category_id  ORDER BY tag_name ASC";
+	$sql_list_query="SELECT DISTINCT(T.tag_name),T.tag_id,T.color_code,T.category_id FROM `tags` AS T ORDER BY T.tag_name ASC";
+
+	
+	// Paging Details
+	$go = 1;
+	$perpage = 20;
+	if(isset($_REQUEST['go']) && $_REQUEST['go'] != '')
+		$go = $_REQUEST['go'];
+	if($go > 1){
+		$chkgo = "?go=".$go;
+	}
+	$offset = (($go * $perpage) - $perpage);
+	$result_total = $db->query($sql_list_query) or die(mysql_error()." ".$sql_list_query);
+	$totalrecs = $db->getNumRows($result_total); 
+	$sql_list_query .= " limit $offset,$perpage";
+	$result = $db->query($sql_list_query) or die(mysql_error()." ".$sql_list_query);
+	$count=$db->getNumRows($result);
+	$total_pages = ceil($totalrecs / $perpage);
+	$start_var = $offset + 1;
+	$end_var_records = $count + (($go-1)*$perpage);
+	$end_var = $start_var + $perpage - 1;
+	$paging_var = "";
+	// Build Previous Pagin Link 
+	if($go > 1){ 
+		$prev = ($go - 1); 
+		$paging_var .= "<a href=\"".$current_page."?go=".$prev."\" style='text-decoration:none'><img src='images/previous.gif' alt='Previous' align='absmiddle' border='0' width='8' height='11' /> </a>"; 
+	} 
+	// Build Paging Link 
+	//for($i = 1; $i <= $total_pages; $i++){
+		$paging_var .=  "<span> (".($offset+1)." - ".($offset+$perpage)." of ".$totalrecs.") </span>"; 
+	//} 
+	// Build Next Paging Link 
+	if($go < $total_pages){ 
+		$next = ($go + 1); 
+		$paging_var .=  "<a href=\"".$current_page."?go=".$next."\"  style='text-decoration:none'><img src='images/next.gif' alt='Next' align='absmiddle' border='0' width='8' height='11' /> </a>"; 
+	}
+	$result = $db->query($sql_list_query) or die($sql_list_query);
+	
+	$badCategories = array("-a","-b","-c","-d","prv","Z");
+?>
+<?php 
+
+if($_REQUEST['del']=='delete')
+{
+	$tag_id=$_REQUEST["id"];	
+
+	$tagDel="DELETE FROM tags WHERE tag_id='".$tag_id."'";
+	mysql_query($tagDel);
+	
+	$relSql="DELETE FROM properties_tags_relationships WHERE tag_id IN($tag_id)";
+	mysql_query($relSql);
+	header("location:tags.php?success=4");
+}
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>CRM</title>
+<link href="css/crmstyle.css" rel="stylesheet" type="text/css" />
+<link type="text/css" href="css/technocss.css" rel="stylesheet" />	
+<link rel="stylesheet" href="simple_color_picker_master/css/colorPicker.css" type="text/css" />
+</head>
+<body>
+<? include("header.php"); ?>
+<table width="99%" border="0" align="center" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td colspan="4" align="left" valign="top" nowrap="nowrap"><table width="100%" border="0" cellpadding="0" cellspacing="0" class="border">
+        <tbody>
+          <tr>
+            <td width="100%" align="left" valign="top" class="lastview"><b style="white-space: nowrap;">Manage Tags  &nbsp;&nbsp;</b> </td>
+          </tr>
+          <tr>
+            <td align="left" valign="top"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" valign="top" class="side-nav"><? include('sidenav.php');?></td>
+                  <td align="left" valign="top" class="mar"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td align="left" valign="top" class="moduleTitle">Manage Tags </td>
+                      <td align="left" valign="top">&nbsp;</td>
+                    </tr>
+                  </table>
+                    <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td align="left" valign="top"><table width="100%" border="0" cellpadding="0" cellspacing="0" class="listview">
+                          <tr>
+                            <td width="13" height="18" align="left" valign="top">&nbsp;</td>
+                            <td width="107" align="left" valign="top">&nbsp;</td>
+                            <td colspan="5" align="right" valign="top"><span style="padding-right:10px;">
+                              <?=$paging_var?>
+                            </span></span></td>
+                          </tr>
+                          <tr bgcolor="#D0E1F4" height="20">
+                            <td height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                            <td height="25" nowrap="nowrap" class="listViewThS1" scope="col"><div style="white-space: nowrap;" width="100%" align="left"> <strong>Sl No&nbsp;</strong>&nbsp; </div></td>
+                            <td width="123" height="25" align="left" nowrap="nowrap" class="listViewThS1" scope="col"><strong> Tag</strong>&nbsp;</td>
+                            <td width="130" height="25" align="left" nowrap="nowrap" class="listViewThS1" scope="col"><strong>Color</strong></td>
+                            <td width="271" height="25" align="left" nowrap="nowrap" class="listViewThS1" scope="col"><strong>Category</strong></td>
+                            <td width="271" height="25" align="left" nowrap="nowrap" class="listViewThS1" scope="col"><strong>Tag Count</strong></td>
+							<td width="85" height="25" nowrap="nowrap" class="listViewThS1" scope="col"><strong>Action</strong>&nbsp;&nbsp;</td>
+                            <td width="21" height="25" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                          </tr>
+                          <? 
+						$numrows = $db->getNumRows($result); 
+							$c=1;
+						while($lrow = $db->fetchArray($result)){
+								if($lrow['color_code']!='')
+								{
+									$tag_color=$lrow['color_code'];
+								}
+								else 
+								{
+									$tag_color="#FFFFFF";
+								}
+							?>
+                          <tr class="grid" height="20">
+                            <td width="13" height="20" nowrap="nowrap" class="listViewThS1" scope="col">&nbsp;</td>
+                            <td width="107" nowrap="nowrap" scope="col" class="n"><?php echo (($perpage*($go-1))+$c); ?></td>
+                            <td height="25" nowrap="nowrap" class="n" scope="col"><?php echo $lrow['tag_name']; ?></td>
+                            <td height="25" nowrap="nowrap" class="n" scope="col"><input class='simple_color_pickerxx' id="color_picker_<?php echo $lrow["tag_id"]; ?>" type="hidden" name="color_code" value="<?php echo $tag_color; ?>"/></td>
+                            <td height="25" nowrap="nowrap" class="n" scope="col">
+							<?php
+								if($lrow['category_id']==0) { 
+									$category_name="Uncategorized";
+								} 
+								else 
+								{
+									$csql="SELECT C.category FROM `tag_categories` AS C WHERE C.id='".$lrow['category_id']."'";
+									$cexe=mysql_query($csql);
+									$crows=mysql_fetch_array($cexe);
+									$category_name=$crows['category'];						
+								}
+								echo $category_name; 
+								?> 		
+							</td>
+							<td height="25" nowrap="nowrap" class="n" scope="col">
+							<?php 
+								$relSql="SELECT * FROM properties_tags_relationships WHERE tag_id='".$lrow['tag_id']."'";
+								$relSqlExe=mysql_query($relSql);
+								$relRows=mysql_num_rows($relSqlExe);
+								echo $relRows;
+							?></td>
+							<td height="25" nowrap="nowrap" class="n" scope="col">
+								<a class="doEdit n" id="edit_<?php echo $lrow['tag_id']; ?>" href="javascript:;">	Edit</a> 										
+								&nbsp; | &nbsp; <a href="javascript:if(confirm('Are you sure you want to delete it?')){window.location='tags.php?id=<?php echo $lrow['tag_id']; ?>&del=delete'}" class="n">Delete</a></td>							
+						  </tr>
+							  <script type="text/javascript">
+								 jQuery(document).ready(function(){ 
+									jQuery("#color_picker_<?php echo $lrow["tag_id"]; ?>").colorPicker({ 
+										onColorChange : function(id, newValue) { 
+											jQuery.ajax({ 
+												type : 'POST',
+												url : 'ajax_tag.php',					
+												data : 
+												{ 
+													tag_id :  '<?php echo $lrow["tag_id"]; ?>',
+													color_code : newValue,
+													action : 'change_color'
+												},
+												success : function(data)
+												{
+													
+												}				
+											});
+										} 
+									});
+								 });
+							</script>
+                          <? $c=$c+1; }if($numrows < 1){ echo '<tr><td class="formtxt" colspan="6"> No Records against your search criteria.</td></tr>';}?>
+                        </table></td>
+                      </tr>
+                    </table></td>
+    </tr>
+</table></td>
+                </tr>
+            </table></td>
+          </tr>
+        </tbody>
+      </table></td>
+    </tr>
+  </tbody>
+</table>
+<script language="javascript" type="text/javascript" src="simple_color_picker_master/js/jquery.colorPicker.js"/></script>
+<script type="text/javascript">
+jQuery(document).ready(function(){ 
+	jQuery(".doEdit").live("click", function(){
+				
+		jQuery(".formBX").children(".simpleColorContainer").removeAttr('id');
+		//  
+		jQuery(".is_enabled").removeAttr('disabled');
+		jQuery("#edit_del_close_button").show();
+		jQuery("#manage_close_button").hide();
+		//jQuery(".error").fadeOut();
+		
+		jQuery(".adTAG").hide(); // hide add tag ...
+		jQuery(".editcatAdd").hide();
+		//
+		var me=jQuery(this);
+		var attr=me.attr('id');
+		var sp=attr.split('_');
+		//manage_close();
+		jQuery.ajax({ 
+			type : 'POST',
+			url : 'ajax_tag.php',					
+			data : 
+			{ 
+				action : 'edit',
+				tag_id : sp[1]						
+			},	
+			success : function(data)
+			{  
+				window.scrollTo(0,0);
+				jQuery('#edit_light').fadeIn(600);
+				jQuery('#fade').fadeIn(600);
+				//document.getElementById('edit_fade').style.display='block'; 
+				var obj=JSON.parse(data);
+				
+				jQuery.ajax({ 
+					type : 'POST',
+					url : 'ajax_tag.php',					
+					data : 
+					{ 
+						action : 'hierarchical',
+						mode : 'edit',
+						tag_id : obj.tag_id,
+						
+					},
+					beforeSend: function()
+					{
+						jQuery("#hierarchicalEdit").html('<img src="https://planitlocations.com/crm/images/ajax-loader.gif">');	
+					},			
+					success : function(data)
+					{
+						jQuery("#hierarchicalEdit").html(data);
+						jQuery(".sel_parent").html('<span>'+obj.category_name+'</span>');									
+					}				
+				});
+				jQuery("#manage_light").addClass('onOffBlock');
+				jQuery("#tagName").val(obj.tag_name);
+				jQuery("#hidTag_id").val(obj.tag_id);
+				jQuery("#is_category_id").val(obj.category_id);
+				jQuery("#is_color_code").val(obj.color_code)
+				jQuery("#hid_property_id").val(sp[2]);
+				jQuery(".AddtagCategoryID").val(obj.category_name);
+				jQuery(".formBX").children(".colorPicker-picker").attr('id','sel_color');
+				setTimeout(function(){  jQuery(".formBX").find("#sel_color").css("background-color",obj.color_code); },'100');
+				jQuery("#light_tag_view_all").addClass('editPopupOn');
+				
+				// for blank
+				jQuery(".error").html('');						
+			}				
+		});					
+	});
+	jQuery('.edittagCategoryID').live("keyup", function(){
+			jQuery.ajax({
+				type:"POST",
+				url:"ajax_tag.php",
+				data:{ 
+					'action':'autoCompleteCategoryCRUD',
+					'keywords' : jQuery(this).val(), 
+				},
+				beforeSend: function()
+				{
+					jQuery(".addtagCategoryPlaceholder").html('<img src="https://planitlocations.com/crm/images/ajax-loader.gif">');	
+				},
+				success:function(res){
+					var obj=JSON.parse(res);
+					jQuery(".addtagCategoryPlaceholder").html(obj.list);
+					if(obj.flag==1)
+					{ 
+						jQuery(".editcatAdd").css({'display':'inline-block'}); 
+					}else
+					{ 
+						jQuery(".editcatAdd").css({'display':'none'});
+					}
+					jQuery(".autofillList").css({'display':'block'}); 
+				}
+		 });
+				 
+	});
+	
+	jQuery('.editcatAdd').live("click", function(){
+		jQuery.ajax({
+			type:"POST",
+			url:"ajax_tag.php",
+			data:{ 
+				'action':'addCategory',
+				'category' : jQuery(".edittagCategoryID").val(), 
+			},
+			beforeSend: function()
+			{
+				jQuery("addLoaderCls").html('<img src="https://planitlocations.com/crm/images/ajax-loader.gif">');		
+			},
+			success:function(res){
+				//if(res==1)
+				//{
+					//$(".editcatAdd").hide();
+					//$(".edittagCategoryID").val('');
+					//$(".addLoaderCls").html('New category added.').fadeIn().delay(500).fadeOut();
+				//}
+				
+				var obj=JSON.parse(res);
+				jQuery("#is_category_id").val(obj.categoryID);
+				jQuery(".editcatAdd").hide();
+			}
+		});	
+	});
+	jQuery('.autoCategoryListingCRUD span').live("click", function(){
+		var CatLiID=jQuery(this).attr('id');
+			var split=CatLiID.split('_');		
+			var thisHtml = jQuery(this).html();		
+			var text=thisHtml.split('&nbsp;');
+			
+			// For Add and edit :: 
+			jQuery(".autofillList").hide();
+			jQuery(".AddtagCategoryID").val(text[0]);
+			jQuery(".is_child").val(split[1]);	
+			jQuery(".addcatAdd").hide(); // at time of add select auto complete list then hide add category button 
+			jQuery(".editcatAdd").hide(); // at time of edit select auto complete list then hide add category button 
+			jQuery("#error_category").html('');
+	});	
+	jQuery('#actionToEdit').live("click", function(){
+		var flag=0;
+		if(jQuery("#tagName").val()=='')
+		{  
+			jQuery("#error_tagName").html("No name specified. Please try another name.").fadeIn(1000);
+			flag=1;
+		}
+		else 
+		{
+			jQuery("#error_tagName").html('');
+		}
+		if(jQuery("#is_category_id").val()=='0')
+		{
+			jQuery("#error_is_category_id").html("Please select category.").fadeIn(1000);
+			flag=1;
+		}
+		else 
+		{  
+			jQuery("#error_is_category_id").html('');
+		}
+		
+		if(flag==0)
+		{
+			jQuery.ajax({ 
+				type : 'POST',
+				url : 'ajax_tag.php',					
+				data : 
+				{ 
+					action : 'actionEdit',
+					tag_name : jQuery("#tagName").val(),
+					tag_id : jQuery("#hidTag_id").val(),
+					category_id : jQuery("#is_category_id").val(),
+					color_code : jQuery("#is_color_code").val()
+				},	
+				success : function(data)
+				{ 
+					location.href="https://planitlocations.com/crm/tags.php";	
+				}				
+			});
+		}					
+	});
+	jQuery('.doCategoryDel').live("click", function(){
+	var delID=jQuery(this).attr('id');
+	var split=delID.split('_');
+		jQuery.ajax({ 
+			type : 'POST',
+			url : 'ajax_tag.php',
+			data : 
+			{ 
+				categoryID : split[1],
+				action : 'delete_category'
+			},	
+			success : function(data)
+			{
+				jQuery("#remove_tagcategory_"+split[1]).remove();
+				jQuery("#tagCategoryID , .AddtagCategoryID").val("");						
+			}				
+		});
+	});
+	jQuery(document).keyup(function(e){ 
+		if (e.keyCode == 27) 
+		{  
+			jQuery(".closeN").trigger("click");
+		}
+	});
+	
+	jQuery("body").not('#tagCategoryID , .AddtagCategoryID').click(function(){ 
+		jQuery("#tagAutofill, .autofillList").hide();
+	});
+});
+function edit_close()
+{
+	jQuery('#edit_light').fadeOut(600);
+	jQuery('#fade').fadeOut(600);
+	jQuery("#manage_light").removeClass('onOffBlock');
+	jQuery("#manage_close_button").show();
+}
+</script>
+
+<!-- --------- MANAGE TAGS------- !-->
+<div id="manage_fade"></div>
+<div id="edit_light" class="editTagBox1 newEdit_light" style="z-index:1004 !important; ">
+<div onClick="edit_close();" id="edit_del_close_button"  style="display:none;" class="closeN">X</div>
+	<span class="tagTtl">Edit tag</span>
+	<div class="formBX">
+		<label class="fldttl">Tag Category :</label>
+		<div class="autoFill">
+			<input type="text"  style="width:250px;margin:0px;" placeholder="Search by tag category" class="txtFld AddtagCategoryID edittagCategoryID"/>
+			<span style="display:none;" class="button editcatAdd">Add</span>
+			<div class="addLoaderCls"></div>
+			<div class="autofillList tagAutofill">
+				<div class="addtagCategoryPlaceholder"></div>
+			</div>
+		</div>
+		<span class="error" id="error_is_category_id"></span>
+	</div>
+	<div class="formBX">
+		<label class="fldttl">Enter your tag:</label>
+		<input type="text" name="tag_name" id="tagName" maxlength="50" autocomplete="off" class="txtFld" />
+		<span class="error" id="error_tagName"></span>
+	</div>
+	<div class="formBX">
+		<label class="fldttl">Please choose color :</label>
+		<input class='simple_color_picker txtFld' id="is_color_code" type="text" name="color_code" value="#F5F5F5"/>
+	</div>
+	<input type="hidden" name="hid_tag_id" id="hidTag_id" />
+	<div class="buttonset">
+		<input type="hidden" name="is_child" id="is_category_id" class="is_child" />
+		<input type="button" name="sub" id="actionToEdit" value="Submit" class="new-Btn button is_enabled" />
+		<input type="button" name="sub" id="subx" value="Cancel" onClick="edit_close();" class="new-Btn button red" />
+		<input type="hidden" name="hid_property_id" id="hid_property_id"  value="<?php echo $_GET['id']; ?>"/>
+		<div class="clear"></div>
+	</div>			
+</div>
+<div id="fade"></div>
+<script language="javascript" type="text/javascript" src="simple_color_picker_master/js/jquery.colorPicker.js"/></script>
+<link rel="stylesheet" href="simple_color_picker_master/css/colorPicker.css" type="text/css" />
+<script type="text/javascript">
+jQuery(document).ready(function(){    
+	jQuery(".simple_color_picker").colorPicker({ 
+		onColorChange : function(id, newValue) { 
+			jQuery(this).val(newValue);
+		} 
+	});
+});
+</script>
+<!-- --------- END  MANAGE TAGS------- !-->
+<? include("footer.php");?>
+</body>
+</html>

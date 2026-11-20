@@ -1,0 +1,278 @@
+<?php
+mysql_select_db("planitlo_locations");
+$propLoc = $prow['property_id'];
+$sqlThumbs = "SELECT prop_domain_loc, prop_loc, tn_domain_loc, thumb01, thumb02, thumb03 FROM prop_info WHERE prop_loc = '".$propLoc."'";
+if($resultThumbs = mysql_query($sqlThumbs)){
+	$rowThumbs = mysql_fetch_array($resultThumbs);
+	$domain = $rowThumbs['tn_domain_loc'];
+	$thumb1 = $rowThumbs['thumb01'];
+	$thumb2 = $rowThumbs['thumb02'];
+	$thumb3 = $rowThumbs['thumb03'];
+	$url = $rowThumbs['prop_domain_loc'];
+	$prop_loc = $rowThumbs['prop_loc'];
+}else{
+	echo mysql_error();
+}
+$sqlSorting = "SELECT * FROM sorting WHERE prop_loc = '".$propLoc."'";
+if($resultSorting = mysql_query($sqlSorting)){
+
+}else{
+	echo mysql_error();
+}
+?>
+<input type="hidden" value="<?php echo $prop_loc ?>" id="hidPropLoc1" />
+<div id="website1" style="display:none"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+		<tr>
+			<td align="left" valign="top">
+				<table width="79%" border="0" cellspacing="0" cellpadding="0">
+					<tr>
+						<td width="114" align="center" valign="baseline"><a href="#" class="h" onclick="showdiv('contact_detail','location_detail','budget_detail','tax_detail','all', 'website');return false;">Contacts Info </a></td>
+						<td width="4"></td>
+						<td width="135" align="center" valign="middle"><a href="#" class="h" onclick="showdiv('location_detail','contact_detail','budget_detail','tax_detail','all', 'website');return false;">Location Info  </a></td>
+						<td width="6"></td>
+						<td width="170" align="center" valign="middle"><a href="#" class="h" onclick="showdiv('budget_detail','location_detail','contact_detail','tax_detail','all', 'website');return false;">Budget Info </a></td>
+						<td width="4"></td>
+						<td width="140" align="center" valign="middle"><a href="#" class="h" onclick="showdiv('tax_detail','location_detail','contact_detail','budget_detail','all', 'website');return false;">Tax Info</a></td>
+						<td width="4"></td>
+						<td width="140" align="center" valign="middle"><a href="#" class="i" onclick="showdiv('website','tax_detail','location_detail','contact_detail','budget_detail','all');return false;">Website data</a></td>
+						<td width="5"></td>
+						<td width="140" align="center" valign="middle"><a href="#" class="h" onclick="showdiv('all','tax_detail','location_detail','contact_detail','budget_detail', 'website');return false;">All</a></td>
+						<td width="5"></td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+		<tr>
+			<td align="left" valign="top" class="border2">
+				<table border="0" cellpadding="3" cellspacing="0" class="listview" width="913">
+					<tr bgcolor="#d0e1f4" height="20">
+						<td height="25" scope="col" class="listViewThS1" colspan="6">
+							<div align="left" class="a" width="100%" style="white-space: nowrap; float: left;">
+								&nbsp;&nbsp;Website data
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="6">
+					
+							<a style="text-decoration: none;" href="<?php echo $url.$prop_loc.'/index.php?id='.$prop_loc.'&id2=&id3=&id4=&id5=&id6=&id7=&id8=&id9=&id10=' ?>" target="_blank">
+								<?php 
+								if(!empty($domain)){
+									if(!empty($thumb1)){
+										?><img style="border-style: none;" src="<?php echo $domain.$thumb1 ?>" alt="" />&nbsp;&nbsp;<?php 
+									}
+									if(!empty($thumb2)){
+										?><img style="border-style: none;" src="<?php echo $domain.$thumb2 ?>" alt="" />&nbsp;&nbsp;<?php 
+									}
+									if(!empty($thumb3)){
+										?><img style="border-style: none;" src="<?php echo $domain.$thumb3 ?>" alt="" />&nbsp;&nbsp;<?php 
+									}
+								}
+								?>
+							</a>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="6">
+							<b>Add property to new category</b>
+						</td>
+					</tr>
+					<tr>
+						<td width="150" colspan="6">
+							Category &nbsp;
+							<input type="text" id="txtNewCategory1" style="width: 138px;" />&nbsp;
+							Sorting&nbsp;
+							<input type="text" id="txtNewPriority1" style="width: 50px;" />&nbsp;
+							<span id="saveNewSorting1" style="cursor: pointer">Save</span>
+						</td>
+					</tr>
+					<tr>
+						<td width="150"><b>Category</b></td>
+						<td width="150"><b>Sorting</b></td>
+						<td width="150"><b>New sorting</b></td>
+						<td width="150"><!-- <b>Website page number</b> --></td>
+						<td width="150"><!-- <b>Link to website</b> --></td>
+						<td width="150"></td>
+					</tr>
+					<?php
+					$whatClass = 0;
+					while($rowSorting = mysql_fetch_array($resultSorting)){
+						$whatClass++;
+						if($whatClass == 1){
+							$showClass = "visibleRow1";
+						}else{
+							$showClass = "hiddenRow1";
+						}
+						?>
+						<tr class="<?php echo $showClass ?>">
+							<td class="listViewThS1"><?php echo $rowSorting['category1'] ?></td>
+							<td class="listViewThS1">
+								<span id="span1<?php echo $rowSorting['ID']; ?>" class="spanPriority1">
+									<?php echo $rowSorting['Priority']; ?>
+								</span>
+								<input type="text" value="<?php echo $rowSorting['Priority']; ?>" id="txt1<?php echo $rowSorting['ID']; ?>" class="txtPriority1" style="width:65px; height: 12px;"/>
+							</td>
+							<td class="listViewThS1">
+								<?php 
+								$sqlNewSort = "SELECT * FROM sortings WHERE cat_name = '".$rowSorting['category1']."'";
+								if($resultNewSort = mysql_query($sqlNewSort)){
+									$rowNewSort = mysql_fetch_array($resultNewSort);
+									$arrNewSort = explode(',', $rowNewSort['sorting']);
+									$count = 0;
+									$fullCatName = $propLoc." <~Property ID";
+									foreach($arrNewSort as $newSort){
+										$count++;
+										if($fullCatName == $newSort){
+											break;
+										}
+									}
+									if($count == "1"){
+										echo "Not sortet yet.";
+									}else{
+										echo $count;
+									}
+									
+								}
+								?>
+							</td>
+							<td class="listViewThS1">
+								<span id="save1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editSave1">Save | </span>
+								<span id="cancel1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editCancel1">Cancel | </span>
+								<span id="edit1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editSort1">Edit | </span>
+								<span id="delete1<?php echo $rowSorting['ID']; ?>" style="cursor: pointer" class="editDelete1">Delete</span>
+							</td>
+							<td class="listViewThS1"></td>
+							<td class="listViewThS1"></td>
+						</tr>
+						<?php 
+					}
+					?>
+					<tr id="rowShowAll1">
+						<td><span style="cursor: pointer" id="btnShowAll1">Show all categories</span></td>
+					</tr>
+					<tr id="rowHideAll1">
+						<td><span style="cursor: pointer" id="btnHideAll1">Hide all categories</span></td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</div>
+<?php 
+mysql_select_db("planitlo_crm");
+?>
+<script type="text/javascript">
+jQuery(document).ready(function() {
+	jQuery("#btnHideAll1").hide();
+
+	jQuery(".hiddenRow1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".txtPriority1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editCancel1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editSave1").each(function() {
+		jQuery(this).hide();
+	});
+	
+	jQuery("#btnShowAll1").click(function () { 
+		jQuery("#rowShowAll1").hide();
+		jQuery("#btnHideAll1").show();
+		jQuery(".hiddenRow1").each(function() {
+			jQuery(this).show();
+		});
+	});
+	
+	jQuery("#btnHideAll1").click(function () { 
+		jQuery("#rowShowAll1").show();
+		jQuery("#btnHideAll1").hide();
+		jQuery(".hiddenRow1").each(function() {
+			jQuery(this).hide();
+		});
+	});
+	
+	jQuery(".editSort1").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(4);
+		jQuery("#txt1"+id).show();
+		jQuery("#save1"+id).show();
+		jQuery("#span1"+id).hide();
+		jQuery("#cancel1"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editCancel").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(6);
+		jQuery("#txt"+id).hide();
+		jQuery("#save"+id).hide();
+		jQuery("#span"+id).show();
+		jQuery("#edit"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editSave1").click(function () { 
+		var id = jQuery(this).attr("id");
+		id = id.substr(4);
+		
+		jQuery.post("ajaxV.php", { 
+				id: id,
+				task: "saveNewSorting",
+				value: jQuery("#txt1"+id).val()
+			},function(data){
+				jQuery("#span1"+id).html(data);
+				jQuery("#txt1"+id).val(data);
+		});
+		
+		jQuery("#txt1"+id).hide();
+		jQuery("#cancel1"+id).hide();
+		jQuery("#span1"+id).show();
+		jQuery("#edit1"+id).show();
+		jQuery(this).hide();
+	});
+	
+	jQuery(".editDelete1").click(function () { 
+		var r=confirm("Do You want to delete this record?");
+		if (r==true){
+			var id = jQuery(this).attr("id");
+			id = id.substr(6);
+			jQuery.post("ajaxV.php", { 
+					id: id,
+					task: "deleteSorting"
+				},function(data){
+				//alert(data);
+				window.location.reload();
+			});
+		}
+	});
+	
+	jQuery("#txtNewCategory1").autocomplete({
+		source: "autocomplete.php",
+		minLength: 3
+	});
+	
+	jQuery("#saveNewSorting1").click(function () { 
+		var category = jQuery("#txtNewCategory1").val();
+		var sorting =  jQuery("#txtNewPriority"1).val();
+		var propLoc =  jQuery("#hidPropLoc1").val();
+		if((category != "") && (sorting != "")){
+			jQuery.post("ajaxV.php", { 
+					propLoc: propLoc,
+					task: "addSorting",
+					category: category,
+					sorting: sorting
+				},function(data){
+					//alert(data);
+					window.location.reload();
+			});
+		}
+	})
+})
+</script>

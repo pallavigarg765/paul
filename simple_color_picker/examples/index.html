@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=euc-jp" />
+<title>jQuery Simple Color</title>
+<script type="text/javascript" src="jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="../src/jquery.simple-color.js"></script>
+
+<script  type="text/javascript">
+$(document).ready(function(){
+ 
+  $('.simple_color_color_code').simpleColor({ displayColorCode: true });
+  $('.simple_color_kitchen_sink').simpleColor({
+    boxHeight: 40,
+    cellWidth: 20,
+    cellHeight: 20,
+    chooserCSS: { 'border': '1px solid #660033' },
+    displayCSS: { 'border': '1px solid red' },
+    displayColorCode: true,
+    livePreview: true,
+    onSelect: function(hex, element) {
+      alert("You selected #" + hex + " for input #" + element.attr('class'));
+    },
+    onCellEnter: function(hex, element) {
+      console.log("You just entered #" + hex + " for input #" + element.attr('class'));
+    },
+    onClose: function(element) {
+      alert("color chooser closed for input #" + element.attr('class'));
+    }
+  });
+
+});
+</script>
+</head>
+
+<body>
+  <button class='close_button'>Close all color choosers</button>
+  <button class='set_color_button'>Set all to red</button>
+
+ 
+
+  <h3>Display Color Code</h3>
+  <input class='simple_color_color_code' value='#33cc33'/>
+
+  
+</body>
+</html>

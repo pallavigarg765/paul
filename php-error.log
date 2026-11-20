@@ -1,0 +1,1 @@
+[27-Apr-2026 19:40:38] PHP Warning:  json_encode(): Invalid UTF-8 sequence in argument in C:\inetpub\wwwroot\plan-it-locations\planitlocations\crm\process_pdf_invoice.php on line 218
